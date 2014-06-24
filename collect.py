@@ -107,7 +107,9 @@ def stop_for(l,terminus):
 def df_trips_by_column(direction, for_lines=['4','5','6'], fname="default", write_df_root="tripData"):
         D = load_df(fname)
         D['tref'] = D['timestamp'].map(lambda t: get_TOD_reference(t))
-        # This is probably inefficient... might want to do this as a pre-process step during data collection
+        # This is cumbersome and probably inefficient...
+        # But it's what I do to generate unique trip_ids to manipulate
+        # Probably want to end up doing this as a pre-processing step
         D['long_id'] = D['id'] + "::" + D['tref'].astype('string')
 
         stops = _get_stops(direction=direction, set_range="all")
@@ -117,6 +119,8 @@ def df_trips_by_column(direction, for_lines=['4','5','6'], fname="default", writ
         if lower(direction)[0] == "s":
                 endpoint = "S"
                 origin = "N"
+        elif lower(direction)[0] != "n":
+                print "Specified direction",direction,"not recognized; forcing NORTH"
         station_codes = get_stop_dict(direction)
 
         trips = D['long_id'].unique()
