@@ -3,8 +3,8 @@ import numpy as np
 import time
 from string import lower
 
-DEFINE_STOPS_LEX_AVE_NORTHBOUND = {'Utica':'250N', 'Flatbush':'247N', 'Atlantic':'235N', 'Fulton':'418N', 'Brooklyn_Bridge':'640N', 'Union':'635N', 'Grand_Central':'631N', '125_St':'621N', 'Woodlawn':'401N', 'Dyre':'501N', 'Pelham':'601N'}
-DEFINE_STOPS_LEX_AVE_SOUTHBOUND = {'Utica':'250S', 'Flatbush':'247S', 'Atlantic':'235S', 'Fulton':'418S', 'Brooklyn_Bridge':'640S', 'Union':'635S', 'Grand_Central':'631S', '125_St':'621S', 'Woodlawn':'401S', 'Dyre':'501S', 'Pelham':'601S'}
+DEFINE_STOPS_LEX_AVE_NORTHBOUND = {'Utica':'250N', 'Flatbush':'247N', 'Atlantic':'235N', 'Fulton':'418N', 'Brooklyn Bridge':'640N', 'Union Sq':'635N', 'Grand Central':'631N', '125 St':'621N', 'Woodlawn':'401N', 'Dyre':'501N', 'Pelham':'601N'}
+DEFINE_STOPS_LEX_AVE_SOUTHBOUND = {'Utica':'250S', 'Flatbush':'247S', 'Atlantic':'235S', 'Fulton':'418S', 'Brooklyn Bridge':'640S', 'Union Sq':'635S', 'Grand Central':'631S', '125 St':'621S', 'Woodlawn':'401S', 'Dyre':'501S', 'Pelham':'601S'}
 LEX_lines = ['4','5','6']
 
 def load_df(fname="default"):
@@ -102,7 +102,37 @@ def get_line(trip_id):
     return trip_id.split("_")[1][0]
 
 def stop_for(l,terminus):
-    return {"N":{'4':'Woodlawn', '5':'Dyre', '6':'Pelham'}, "S":{'4':'Utica', '5':'Flatbush','6':'Brooklyn_Bridge'}}[terminus][l]
+    return {"N":{'4':'Woodlawn', '5':'Dyre', '6':'Pelham'}, "S":{'4':'Utica', '5':'Flatbush','6':'Brooklyn Bridge'}}[terminus][l]
+
+def df_stop_frequency(direction, for_lines=['4','5','6'], fname="default", write_df_root="stopFreq", dt=120):
+        D = load_df(fname)
+
+        get_stops = _get_stops(direction=direction, set_range="all")
+        D = filter_stops(D, get_stops, for_lines)
+        endpoint = "N"
+        origin = "S"
+        if lower(direction)[0] == "s":
+                endpoint = "S"
+                origin = "N"
+        elif lower(direction)[0] != "n":
+                print "Specified direction",direction,"not recognized; forcing NORTH"
+        #station_codes = get_stop_dict(direction)
+        times = D['timestamp'].unique()
+	t_max = times.max()
+	t_min = times.min()
+	print t_min,t_max
+	nbins = int((t_max - t_min)/dt) + 1
+	set_index = [int(t_min+n*dt) for n in range(nbins)]
+        stops = D['stop'].unique()
+	print "Filtered DF contains stops",stops
+	df_freq = pd.DataFrame(index=set_index, columns=stops)
+	df_freq = df_freq.fillna(0.)
+
+	for i in D.index:
+		t_bin = int((D.loc[i,'timestamp'] - t_min)/dt)*dt + int(t_min)
+		df_freq.loc[t_bin, D.loc[i,'stop']] = df_freq.loc[t_bin, D.loc[i,'stop']] + 1
+	df_freq.to_csv(write_df_root+".csv")
+	return df_freq
 
 def df_trips_by_column(direction, for_lines=['4','5','6'], fname="default", write_df_root="tripData"):
         D = load_df(fname)
@@ -128,6 +158,7 @@ def df_trips_by_column(direction, for_lines=['4','5','6'], fname="default", writ
 
         tripCol = pd.DataFrame(index=['line','trip_time','tref']+list(stops), columns = trips)
         tripTimes = pd.DataFrame(index = trips, columns = ['line','trip_time','time_of_day'])
+        stopCounts = pd.DataFrame(index=list(stops), columns = trips)
 
         ## Should profile these loops and speed it up
         for trip in trips:
@@ -140,6 +171,7 @@ def df_trips_by_column(direction, for_lines=['4','5','6'], fname="default", writ
                 for stop in D_trip['stop'].unique():
                         D_trip_for_stop = D_trip[D_trip['stop']==stop]
                         tripCol.loc[stop,trip] = D_trip_for_stop['timestamp'].max()
+			stopCounts.loc[stop,trip] = len(D_trip_for_stop)
                 trip_time = tripCol.loc[station_codes[stop_for(l,endpoint)],trip] - \
                         tripCol.loc[station_codes[stop_for(l,origin)],trip]
                 tripCol.loc['trip_time',trip] = trip_time
@@ -151,9 +183,10 @@ def df_trips_by_column(direction, for_lines=['4','5','6'], fname="default", writ
         print "created DataFrames with data compiled by trip; writing to files with root", write_df_root
         tripCol.to_csv(write_df_root + "_verbose.csv")
         tripTimes.to_csv(write_df_root + "_trip_times.csv")
-        return tripCol, tripTimes
+        stopCounts.to_csv(write_df_root + "_stop_counts.csv")
+        return tripCol, tripTimes, stopCounts
 
-def load_df_trips_by_column(fname="tripData_verbose.csv"):
+def load_df_from_file(fname="tripData_verbose.csv"):
         tripCol = pd.read_csv(fname)
         print "loaded DF from file"
         index_colname = tripCol.columns[0]
