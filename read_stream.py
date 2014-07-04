@@ -36,8 +36,10 @@ def processMTAData(nyct_feed, filename):
                 if len(stops)>0:
                     count += 1
                     f.write(str(timestamp) + ',' + str(entity.trip_update.trip.trip_id) \
-                            + ',' + str(stops[0].stop_id) + '\n')
-        print "dump complete",count
+		    + "," + str(entity.trip_update.trip.start_date) \
+		    + ',' + str(stops[0].stop_id) + "," + str(stops[0].arrival.time) \
+		    + "," + str(stops[0].departure.time) + '\n')
+	print "dump complete",count
 
 if __name__ == "__main__":
     import time
@@ -53,7 +55,7 @@ if __name__ == "__main__":
             nyct_feed = readMTADataStream()
         print "(read successful",attempts,")",
         t = time.localtime()
-        filename = "mta_data_" + str(t[0]) + "." + str(t[1]) + "." + str(t[2]) + ".csv"
+        filename = "mta_data_v2." + str(t[0]) + "." + str(t[1]) + "." + str(t[2]) + ".csv"
         processMTAData(nyct_feed, filename)
         time.sleep(wait_time)
         local_time += wait_time
