@@ -2,19 +2,22 @@ import pandas as pd
 import numpy as np
 import time
 from string import lower
+from stations import _get_stops, get_stop_dict, get_line, stop_for
 
-DEFINE_STOPS_LEX_AVE_NORTHBOUND = {'Utica':'250N', 'Flatbush':'247N', 'Atlantic':'235N', 'Fulton':'418N', 'Brooklyn Bridge':'640N', 'Union Sq':'635N', 'Grand Central':'631N', '125 St':'621N', 'Woodlawn':'401N', 'Dyre':'501N', 'Pelham':'601N'}
-DEFINE_STOPS_LEX_AVE_SOUTHBOUND = {'Utica':'250S', 'Flatbush':'247S', 'Atlantic':'235S', 'Fulton':'418S', 'Brooklyn Bridge':'640S', 'Union Sq':'635S', 'Grand Central':'631S', '125 St':'621S', 'Woodlawn':'401S', 'Dyre':'501S', 'Pelham':'601S'}
 LEX_lines = ['4','5','6']
 
-def load_df(fname="default"):
+def load_df(fname="default", setcols=['timestamp', 'id', 'stop']):
     """Load the MTA stream data into a pandas dataframe"""
 
     if fname=="default":
         fname = "mta_sample_stream_data.csv"
 
     df = pd.read_csv(fname)
-    df.columns = ['timestamp', 'id', 'stop']
+    if len(setcols) != len(df.columns):
+	    print "load_df Error: DataFrame has",len(df.columns),"columns"
+	    print "Length does not match specified column names",setcols
+	    return None
+    df.columns = setcols
     # extract the train line from id
     df['line'] = map(lambda x: x.split("_")[1][0], df['id'])
     return df
@@ -55,55 +58,6 @@ def nice_time(t, military=True):
             return str(hh%12) + ":" + str(mm) + "PM"
     return str(hh) + ":" + str(mm) + suffix
 
-def _get_stops(direction, set_range="ALL", route="LEX"):
-        if lower(route) != "lex":
-                print "Right now only Lexington Avenue 4/5/6 routes are supported. You requested unsupported route parameter",route
-                return None
-        dir_flag = lower(direction[0]) 
-        use_dict = DEFINE_STOPS_LEX_AVE_NORTHBOUND
-        start_list = ['Utica', 'Flatbush', 'Brooklyn_Bridge']
-        end_list = ['Woodlawn', 'Dyre', 'Pelham']
-        others_list = [k for k in DEFINE_STOPS_LEX_AVE_NORTHBOUND.keys() if (k not in start_list and k not in end_list)]
-        if dir_flag == "s":
-                use_dict = DEFINE_STOPS_LEX_AVE_SOUTHBOUND
-                start_list = ['Woodlawn', 'Dyre', 'Pelham']
-                end_list = ['Utica', 'Flatbush', 'Brooklyn_Bridge']
-        elif dir_flag != "n":
-                print "Failed to return list of stops! Allowed direction parameters are [N]orthbound or [S]outhbound; You specified",direction
-                return None
-        if lower(set_range) == "all":
-                return use_dict.values()
-        elif lower(set_range) == "interim":
-                return [use_dict.get(k) for k in others_list]
-        elif lower(set_range) == "start":
-                return [use_dict.get(k) for k in start_list]
-        elif lower(set_range) == "end":
-                return [use_dict.get(k) for k in end_list]
-        else:
-                allowed_range = ["all", "start", "end", "interim"]
-                print "Failed to return list of stops! Allowed range parameters are",allowed_range,"; You specified",set_range
-                return None
-
-def get_stop_dict(direction, route="LEX"):
-        """ Return the dictionary of station stops and stop codes."""
-        if lower(route) != "lex":
-                print "Right now only Lexington Avenue 4/5/6 routes are supported. You requested unsupported route parameter",route
-                return None
-        dir_flag = lower(direction[0]) 
-        use_dict = DEFINE_STOPS_LEX_AVE_NORTHBOUND
-        if dir_flag == "s":
-                use_dict = DEFINE_STOPS_LEX_AVE_SOUTHBOUND
-        elif dir_flag != "n":
-                print "Failed to return list of stops! Allowed direction parameters are [N]orthbound or [S]outhbound; You specified",direction
-                return None
-        return use_dict
-
-def get_line(trip_id):
-    return trip_id.split("_")[1][0]
-
-def stop_for(l,terminus):
-    return {"N":{'4':'Woodlawn', '5':'Dyre', '6':'Pelham'}, "S":{'4':'Utica', '5':'Flatbush','6':'Brooklyn Bridge'}}[terminus][l]
-
 def df_stop_frequency(direction, for_lines=['4','5','6'], fname="default", write_df_root="stopFreq", dt=120):
         D = load_df(fname)
 
@@ -136,6 +90,9 @@ def df_stop_frequency(direction, for_lines=['4','5','6'], fname="default", write
 
 def df_trips_by_column(direction, for_lines=['4','5','6'], fname="default", write_df_root="tripData"):
         D = load_df(fname)
+	return df_trips_by_column(D, direction=direction, for_lines=for_lines, fname=fname, write_df_root=write_df_root)
+
+def df_trips_by_column(D, direction="N", for_lines=['4','5','6'], fname="default", write_df_root="tripData"):
         D['tref'] = D['timestamp'].map(lambda t: get_TOD_reference(t))
         # This is cumbersome and probably inefficient...
         # But it's what I do to generate unique trip_ids to manipulate
@@ -196,3 +153,83 @@ def load_df_from_file(fname="tripData_verbose.csv"):
         tripCol.index = tripCol[index_colname]
         tripCol = tripCol.drop(index_colname, axis=1)
         return tripCol
+
+def update_depart_time(v):
+	if v['depart'] > v['arrive']:
+		return v['depart']
+	return v['arrive']
+
+def process(fname, file_root=None):
+	tstamp = time.time()
+	if not file_root:
+		file_root = "subway_data_" + str(int(tstamp)) + "_"
+	D = pd.read_csv(fname)
+	print "Read in raw data:",np.shape(D)
+	standard_cols = ['timestamp','trip_id','start_date','stop','arrive','depart']
+	D.columns = standard_cols
+	D['line'] = D['trip_id'].map(lambda x: x.split("_")[1][0])
+	lines = D['line'].unique()
+	lines = [l for l in lines if l not in [".","G"]]
+	print "Collected data for subway lines",lines
+        D['tref'] = D['timestamp'].map(lambda t: get_TOD_reference(t))
+        D['long_id'] = D['trip_id'] + "::" + D['tref'].astype('string')
+
+	for l in lines:
+		DL = D[D['line']==l]
+		all_stops = DL['stop'].unique()
+		for direction in ["N","S"]:
+			stops = [s for s in all_stops if s[-1]==direction]
+			direction_mask = [s in stops for s in DL['stop']]
+			DL_dir = DL[direction_mask]
+			## pre-process
+			print "Pre-processing data for line",l,"direction",direction
+			#print DL_dir['stop'].unique()
+			trips = DL_dir['long_id'].unique()
+			times = DL_dir['timestamp'].unique()
+			print "Reconciling arrive and depart data"
+			DL_dir['hold'] = DL_dir['depart'] > DL_dir['arrive']
+			DL_dir['hold'].value_counts()
+			DL_dir['depart'] = DL_dir.apply(update_depart_time,axis=1)
+			DL_dir['late'] = DL_dir['timestamp'] > (DL_dir['depart'])
+
+			DL_dir.to_csv(file_root + l + "_" + direction + "_whole.csv")
+			print "Wrote DataFrame",file_root + l + "_" + direction + "_whole.csv"
+			print "Now processing data frames for line",l,direction
+			## the DataFrames we'll write
+			latestRecord = pd.DataFrame(index=trips, columns=stops)
+			isLate = pd.DataFrame(index=trips, columns=stops)
+			keepIndex = pd.DataFrame(index=trips, columns=stops)
+			dropIndex = []
+			######
+
+			## very slow loop - TODO: speedup (numba, other data structures?)
+			for i in DL_dir.index:
+				timestamp = DL_dir.loc[i,'timestamp']
+				stop = DL_dir.loc[i,'stop']
+				trip_id = DL_dir.loc[i,'long_id']
+				scheduled = DL_dir.loc[i,'depart']
+				#print i,timestamp,stop,trip_id
+				if np.isnan(latestRecord.loc[trip_id,stop]):
+					latestRecord.loc[trip_id,stop] = timestamp
+					keepIndex.loc[trip_id,stop] = i
+					isLate.loc[trip_id,stop] = timestamp - scheduled
+				else:
+					old_t = latestRecord.loc[trip_id,stop]
+					old_i = keepIndex.loc[trip_id,stop]
+					if timestamp > old_t:
+						dropIndex.append(old_i)
+						latestRecord.loc[trip_id,stop] = timestamp
+						keepIndex.loc[trip_id,stop] = i
+						isLate.loc[trip_id,stop] = timestamp - scheduled
+						# i,trip_id,stop,"replace",timestamp,">",old_t,old_i
+					else:
+						dropIndex.append(i)
+						#print i,trip_id,stop,"REJECT",timestamp,"<",old_t,old_i
+			print "assembled records to drop",len(dropIndex)
+			DLdrop = DL_dir.drop(dropIndex,axis=0)
+			DLdrop.to_csv(file_root + l + "_" + direction + "_clean.csv")
+			print "Wrote DataFrame",file_root + l + "_" + direction + "_clean.csv"
+			latestRecord.to_csv(file_root + l + "_" + direction + "_stoptimes.csv")
+			print "Wrote DataFrame",file_root + l + "_" + direction + "_stoptimes.csv"
+			isLate.to_csv(file_root + l + "_" + direction + "_howlate.csv")
+			print "Wrote DataFrame",file_root + l + "_" + direction + "_howlate.csv"
