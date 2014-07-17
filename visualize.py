@@ -47,8 +47,8 @@ def jitter(x, dx):
     return x + 2*a0*dx
 
 def plot_trip_trajectories(for_lines=['4','5','6'], for_directions=['N','S']):
-	for l in for_lines:
-		db_l = db[db['line']==l]
+	for set_line in for_lines:
+		db_l = db[db['line']==set_line]
 		for d in for_directions:
 			db_index = db_l[db_l['direction']==d].index.values
 			print "referred to db index",db_index
@@ -56,13 +56,13 @@ def plot_trip_trajectories(for_lines=['4','5','6'], for_directions=['N','S']):
 			print file_root
 			df_stoptimes = pd.read_csv(file_root+"_stoptimes.csv",index_col=0)
 			df_howlate = pd.read_csv(file_root+"_howlate.csv",index_col=0)
-			station_order, code_order, station_map, station_index = get_station_map(d, l)
+			station_order, code_order, station_map, station_index = get_station_map(d, set_line)
 			first_stop = code_order[0]
 			last_stop = code_order[-1]
 			df_triptimes = pd.DataFrame(index=df_stoptimes.index, columns=['trip_time'])
 			df_triptimes['trip_time'] = (df_stoptimes[last_stop] - df_stoptimes[first_stop])/60.
 			useColor = "#0066CC"
-			output_file("plot_"+l+"_"+d+".html")
+			output_file("plot_"+set_line+"_"+d+".html")
 			figure(x_range=station_order)
 			set_y_max = []
 			hold()
@@ -88,12 +88,14 @@ def plot_trip_trajectories(for_lines=['4','5','6'], for_directions=['N','S']):
 					if max(dT) > 0:
 						set_y_max.append(max(dT))
         				useX = [1+station_map[sta] for sta in dT.index]
+				        useX_shift = [late_shift(0.1,30.,l)+x for x,l in zip(useX,late)]
+					
             
         				useAlpha = [late_alpha(lll,600.) for lll in late]
         				colorList = [late_color(lll,30.) for lll in late]
         				dT = [correct_time(t) for t in dT]
         
-        				circle(useX, y=dT, line_color=colorList, fill_color=colorList, alpha=useAlpha)
+        				circle(useX_shift, y=dT, line_color=colorList, fill_color=colorList, alpha=useAlpha)
 
         				line(useX, y=dT, color=useColor, alpha=0.02)
         			numPlots += 1
@@ -104,7 +106,7 @@ def plot_trip_trajectories(for_lines=['4','5','6'], for_directions=['N','S']):
 			else:
 				use_y_max = max(set_y_max)
 			print "Use y max",use_y_max
-			curplot().title = "Subway Trip Trajectories - " + str(l) + " Train " + str(d) + "B"
+			curplot().title = "Subway Trip Trajectories - " + str(set_line) + " Train " + str(d) + "B"
 			curplot().y_range=Range1d(start=-5, end=use_y_max+5)
 			xaxis().major_label_orientation = np.pi/4
 			xaxis().axis_label = "Subway Stop"
@@ -378,6 +380,7 @@ def route_trace_plot(tCol_stops, tCol):
 	return snippet
 
 if __name__=="__main__":
-	plot_time_evolution()
+	#plot_time_evolution()
 	#plot_departure_delays()
 	#plot_trip_intervals()
+	plot_trip_trajectories()
