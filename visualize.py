@@ -2,6 +2,8 @@ import pandas as pd
 import numpy as np
 from bokeh.plotting import *
 from bokeh.objects import Range1d
+import bokeh.embed
+import bokeh.resources
 from collect import *
 from stations import *
 import os
@@ -45,6 +47,104 @@ def correct_time(t):
 def jitter(x, dx):
     a0 = np.random.random()-0.5
     return x + 2*a0*dx
+
+class plotWrapperClass():
+	plotObjects =[]
+
+	def __init__(self, setPlotMethod):
+		self.plotMethod = setPlotMethod
+	
+
+	def makePlots(self, for_lines=['4','5','6'], for_directions=['N','S'], show_plot=True):
+		plotObjs = []
+		print "makeplots",for_lines, for_directions
+		for set_line in for_lines:
+			db_l = db[db['line']==set_line]
+			for set_direction in for_directions:
+				db_index = db_l[db_l['direction']==set_direction].index.values
+				print "referred to db index",db_index
+				self.plotObjects.append(self.plotMethod(db_index, set_line, set_direction, show_plot))
+	
+
+
+def prepareDatetime(D_stoptimes, station_map):
+	set_len = len(D_stoptimes.columns)
+	x_data_array = np.ones(set_len*len(D_stoptimes.index))
+	y_data_array = np.empty(set_len*len(D_stoptimes.index), dtype='datetime64[ns]')
+
+	start_slice = 0
+	for trip in D_stoptimes.index:
+    		raw_data = D_stoptimes.loc[trip,:].dropna()
+		tmpD = raw_data * 1e9
+		data_datetime = tmpD.astype('M8[ns]')
+    		x_data = [station_map[data_datetime.index[i]] for i in range(len(data_datetime))]
+		end_slice = start_slice + len(x_data)
+		x_data_array[start_slice:end_slice] = x_data
+		y_data_array[start_slice:end_slice] = [data_datetime[i].tz_localize('US/Eastern') for i in data_datetime.index]
+		start_slice = end_slice
+	return x_data_array[:end_slice], y_data_array[:end_slice]
+
+def prepareScheduleDatetime(set_line, set_direction, code_order, station_map, T0, Tmax):
+	sched = pd.read_csv("data/schedule.csv", index_col=0)
+	huge = ''.join(sched.index.values)
+
+	T0_ref_POSIX = get_TOD_reference(T0)
+	T0_ref = pd.to_datetime(get_TOD_reference(T0)*1e9).tz_localize('US/Eastern')
+	Tmax_ref = pd.to_datetime(get_TOD_reference(Tmax)*1e9).tz_localize('US/Eastern')
+	datesToPlot = pd.date_range(start=T0_ref, end=Tmax_ref, freq='D')
+
+	x_data_set = []
+	y_data_set = []
+	DOW = None
+	one_day = 24*3600.
+
+	for date_index in range(len(datesToPlot)):
+		plotDate = datesToPlot[date_index]
+    		if plotDate.dayofweek != DOW:
+       			DOW = plotDate.dayofweek
+       			sched_strings = retrieve_schedules(DOW, set_line, set_direction, huge)
+   
+    		for sched_index in sched_strings:
+       			sched_data = sched.loc[sched_index,:].dropna()
+			x_data = np.array([station_map[d_index] for d_index in code_order if d_index in sched_data.index])
+       			y_data = pd.Series([1e9*(T0_ref_POSIX + date_index*one_day + \
+       				sched_data[sta]) for sta in code_order \
+				if sta in sched_data.index]).astype('M8[ns]')
+			x_data_set.append(x_data)
+			y_data_set.append(y_data)
+	return x_data_set, y_data_set
+
+def plotTimeEvolution(db_index, set_line, set_direction, show_plot=True):
+	file_root = db.loc[db_index,'file'].values[0]
+	D_stoptimes = pd.read_csv(file_root+"_stoptimes.csv",index_col=0)
+	station_order, code_order, station_map, station_index = \
+		get_station_map(set_direction, set_line)
+	useColor = "#0066CC"
+	output_file("plot_time_evol_"+set_line+"_"+set_direction+".html")
+
+	dropStations = [sta for sta in D_stoptimes.columns if sta not in code_order]
+	print "dropping", dropStations
+	D_stoptimes = D_stoptimes.drop(dropStations, axis=1)
+
+	print "Initializing figure"
+	figure(y_axis_type='datetime')
+	hold()
+	
+	x_data_array, y_data_array = prepareDatetime(D_stoptimes, station_map)
+	scatter(x_data_array, y=y_data_array, alpha=0.15, size=5, color=useColor)
+    	#multi_line(x_data, y_data, alpha=0.05, color=useColor)
+
+       	x_data_set, y_data_set = prepareScheduleDatetime(set_line, set_direction, code_order, station_map, D_stoptimes.min().min(), D_stoptimes.max().max())
+
+       	multi_line(x_data_set, y_data_set, alpha=0.15, color='red')
+
+	curplot().title = "Time Evolution of Subway Stops - " + set_line + " Train " + set_direction + "B"
+	xaxis().major_label_orientation = np.pi/4
+	xaxis().axis_label = "Subway Stop"
+	yaxis().axis_label = "Date & Time"
+	if show_plot:
+		show()
+	return curplot()
 
 def plot_trip_trajectories(for_lines=['4','5','6'], for_directions=['N','S']):
 	for set_line in for_lines:
@@ -178,22 +278,25 @@ def retrieve_schedules(DOW, line, direction,huge):
     return matches
 
 def to_hhmmss(t_0):
-	t_mins = t_0/100
-	return (str(t_mins/60) + ":" + str(t_mins%60) + ":" + str(t_0%100))
+	t_0 = int(t_0)
+	t_mins = t_0/60
+	return (str(t_mins/60) + ":" + str(t_mins%60) + ":" + str(t_0%60))
+
+
 
 def plot_time_evolution(for_lines=['4','5','6'], for_directions=['N','S']):
-	for l in for_lines:
-		db_l = db[db['line']==l]
-		for d in for_directions:
-			db_index = db_l[db_l['direction']==d].index.values
+	for set_line in for_lines:
+		db_l = db[db['line']==set_line]
+		for set_dir in for_directions:
+			db_index = db_l[db_l['direction']==set_dir].index.values
 			print "referred to db index",db_index
 			file_root = db.loc[db_index,'file'].values[0]
 			print file_root
 			D_stoptimes = pd.read_csv(file_root+"_stoptimes.csv",index_col=0)
 			#df_howlate = pd.read_csv(file_root+"_howlate.csv",index_col=0)
-			station_order, code_order, station_map, station_index = get_station_map(d, l)
+			station_order, code_order, station_map, station_index = get_station_map(set_dir, set_line)
 			useColor = "#0066CC"
-			output_file("plot_time_evol_"+l+"_"+d+".html")
+			output_file("plot_time_evol_"+set_line+"_"+set_dir+".html")
 
 			keepStations = [sta for sta in code_order]
 			dropStations = [sta for sta in D_stoptimes.columns if sta not in code_order]
@@ -205,52 +308,75 @@ def plot_time_evolution(for_lines=['4','5','6'], for_directions=['N','S']):
 			print "Initializing figure"
 			figure(y_axis_type='datetime')
 			hold()
+    			x_data_ordered = [station_map[sta] for sta in code_order]
+    			x_data_cols = [station_map[sta] for sta in D_stoptimes.columns]
+			set_len = len(x_data_cols)
+			x_data_array = np.ones(set_len*len(D_stoptimes.index))
+			y_data_array = np.empty(set_len*len(D_stoptimes.index), dtype='datetime64[ns]')
+			start_slice = 0
 			print "Entering first loop"
 			for trip in D_stoptimes.index:
 		    		raw_data = D_stoptimes.loc[trip,:].dropna()
 				tmpD = raw_data * 1e9
 				data_datetime = tmpD.astype('M8[ns]')
     				x_data = [station_map[data_datetime.index[i]] for i in range(len(data_datetime))]
-    				y_data = [data_datetime[i].tz_localize('US/Eastern') for i in data_datetime.index]
+				end_slice = start_slice + len(x_data)
+    				#y_data = [data_datetime[i].tz_localize('US/Eastern') for i in data_datetime.index]
+				x_data_array[start_slice:end_slice] = x_data#_cols
+				y_data_array[start_slice:end_slice] = [data_datetime[i].tz_localize('US/Eastern') for i in data_datetime.index]
+				start_slice = end_slice
 
-    				scatter(x_data, y=y_data, alpha=0.15, size=5, color=useColor)
-    				line(x_data, y_data, alpha=0.05, color=useColor)
+			scatter(x_data_array[:end_slice], y=y_data_array[:end_slice], alpha=0.15, size=5, color=useColor)
+    			#multi_line(x_data, y_data, alpha=0.05, color=useColor)
 
 			print "Through first loop"
 			#sched = pd.read_csv("data/schedule_hhmmss.csv", index_col=0)
 			sched = pd.read_csv("data/schedule.csv", index_col=0)
-			sched = sched[keepStations]
-			sched = sched.dropna(axis=0, how='all')
+			#sched = sched[keepStations]
+			#sched = sched.dropna(axis=0, how='all')
 			print "trimmed schedule df to",np.shape(sched)
 			huge = ''.join(sched.index.values)
 
 			T0 = D_stoptimes.min().min()
-			T0 = pd.to_datetime(T0*1e9, 'M8[ns]')
+			T0_ref_POSIX = get_TOD_reference(T0)
+			T0_ref = pd.to_datetime(get_TOD_reference(T0)*1e9).tz_localize('US/Eastern')
 			Tmax = D_stoptimes.max().max()
-			Tmax = pd.to_datetime(Tmax*1e9, 'M8[ns]')
-			datesToPlot = pd.date_range(start=T0, end=Tmax, freq='D')
-			#datesToPlot.tz_localize('US/Eastern')
+			Tmax_ref = pd.to_datetime(get_TOD_reference(Tmax)*1e9).tz_localize('US/Eastern')
+			datesToPlot = pd.date_range(start=T0_ref, end=Tmax_ref, freq='D')
 
 			useIndex = D_stoptimes.columns
 			x_data = [station_map[d_index] for d_index in useIndex]
 			DOW = None
-			for plotDate in datesToPlot:
+			x_data_set = []
+			y_data_set = []
+			datesToPlot_POSIX = datesToPlot.astype(np.int64)
+			one_day = 24*3600.
+
+			for date_index in range(len(datesToPlot)):
+				plotDate = datesToPlot[date_index]
     				if plotDate.dayofweek != DOW:
         				DOW = plotDate.dayofweek
-        				sched_strings = retrieve_schedules(DOW, l, d, huge)
-    				base_date_str = str(plotDate.date())
+        				sched_strings = retrieve_schedules(DOW, set_line, set_dir, huge)
+    				#base_date_str = str(plotDate.date())
+				plotDate_POSIX = datesToPlot_POSIX[date_index]
    
-   				print "plotting schedule data for date",plotDate.date()
+   				print "plotting schedule data for date",plotDate.date(),plotDate,plotDate.value,plotDate_POSIX
     				for sched_index in sched_strings:
         				sched_data = sched.loc[sched_index,:].dropna()
-        				y_data = [pd.to_datetime(base_date_str + " " + 
-            					to_hhmmss(sched_data[sta]))
-						for sta in useIndex if sta in sched_data.index]
+					x_data = np.array([station_map[d_index] for d_index in code_order if d_index in sched_data.index])
+        				#y_data = np.array([pd.to_datetime(base_date_str + " " + 
+        				y_data = pd.Series([1e9*(T0_ref_POSIX + date_index*one_day + \
+        					sched_data[sta]) for sta in code_order \
+						if sta in sched_data.index]).astype('M8[ns]')
+					#print sched_index,y_data
         				#y_data = [yy.tz_localize('US/Eastern') for yy in y_data]
+					x_data_set.append(x_data)
+					y_data_set.append(y_data)
         
-        				line(x_data, y_data, alpha=0.15, color='red')
+        		multi_line(x_data_set, y_data_set, alpha=0.2, color='red')
+        		#line(x_data, y_data, alpha=0.15, color='red')
 
-			curplot().title = "Time Evolution of Subway Stops - " + l + " Train " + d + "B"
+			curplot().title = "Time Evolution of Subway Stops - " + set_line + " Train " + set_dir + "B"
 			xaxis().major_label_orientation = np.pi/4
 			xaxis().axis_label = "Subway Stop"
 			yaxis().axis_label = "Date & Time"
@@ -379,8 +505,113 @@ def route_trace_plot(tCol_stops, tCol):
 	#show()
 	return snippet
 
+def plot_time_evolution_numeric(for_lines=['4','5','6'], for_directions=['N','S']):
+	for l in for_lines:
+		db_l = db[db['line']==l]
+		for d in for_directions:
+			db_index = db_l[db_l['direction']==d].index.values
+			print "referred to db index",db_index
+			file_root = db.loc[db_index,'file'].values[0]
+			print file_root
+			D_stoptimes = pd.read_csv(file_root+"_stoptimes.csv",index_col=0)
+			#df_howlate = pd.read_csv(file_root+"_howlate.csv",index_col=0)
+			station_order, code_order, station_map, station_index = get_station_map(d, l)
+			useColor = "#0066CC"
+			output_file("plot_time_evol_"+l+"_"+d+".html")
+
+			keepStations = [sta for sta in code_order]
+			dropStations = [sta for sta in D_stoptimes.columns if sta not in code_order]
+			print "dropping", dropStations
+			D_stoptimes = D_stoptimes.drop(dropStations, axis=1)
+			#tmpD = D_stoptimes * 1e9
+			#D_datetime = tmpD.astype('M8[ns]')
+
+			print "Initializing figure"
+			figure()
+			hold()
+			print "Building lists"
+    			x_data_ordered = [station_map[sta] for sta in code_order]
+    			x_data_cols = [station_map[sta] for sta in D_stoptimes.columns]
+			set_len = len(x_data_cols)
+			x_data_array = np.ones(set_len*len(D_stoptimes.index))
+			y_data_array = np.ones(set_len*len(D_stoptimes.index))
+			series_index = 0
+			for trip in D_stoptimes.index:
+				tref = float(trip.split("::")[1])
+				start_slice = series_index*set_len
+				end_slice = (series_index+1)*set_len
+				#print trip,series_index,(end_slice-start_slice),len(x_data_cols),set_len
+				x_data_array[start_slice:end_slice] = x_data_cols
+				y_data_array[start_slice:end_slice] = (D_stoptimes.loc[trip,:] - tref)/3600.
+				series_index = series_index + 1
+
+    			scatter(x_data_array, y=y_data_array, alpha=0.15, size=5, color=useColor)
+    			#line(x_data_array, y_data_array, alpha=0.2, color=useColor)
+
+			print "Through first loop"
+			sched = pd.read_csv("data/schedule.csv", index_col=0)
+			sched = sched[keepStations]
+			sched = sched.dropna(axis=0, how='all')
+			print "trimmed schedule df to",np.shape(sched)
+			huge = ''.join(sched.index.values)
+
+			T0 = D_stoptimes.min().min()
+			T0 = pd.to_datetime(T0*1e9, 'M8[ns]')
+			Tmax = D_stoptimes.max().max()
+			Tmax = pd.to_datetime(Tmax*1e9, 'M8[ns]')
+			datesToPlot = pd.date_range(start=T0, end=Tmax, freq='D')
+			d_timesamps = datesToPlot.astype(np.int64)
+			#datesToPlot.tz_localize('US/Eastern')
+
+			print "DATES TO PLOT",datesToPlot
+			DOW = None
+			x_data_set = []
+			y_data_set = []
+			for plotDate in datesToPlot:
+    				if plotDate.dayofweek != DOW:
+        				DOW = plotDate.dayofweek
+        				sched_strings = retrieve_schedules(DOW, l, d, huge)
+    				base_date_str = str(plotDate.date())
+   
+   				print "plotting schedule data for date",plotDate.date()
+    				for sched_index in sched_strings:
+        				sched_data = sched.loc[sched_index,:].dropna()
+					x_data = np.array([station_map[d_index] for d_index in code_order if sta in sched_data.index])
+        				y_data = np.array([(sched_data[sta])/3600. \
+						for sta in code_order if sta in sched_data.index])
+
+        				#y_data = [yy.tz_localize('US/Eastern') for yy in y_data]
+					x_data_set.append(x_data)
+					y_data_set.append(y_data)
+        
+        		multi_line(x_data_set, y_data_set, alpha=0.15, color='red')
+			"""
+			"""
+			curplot().title = "Time Evolution of Subway Stops - " + l + " Train " + d + "B"
+			xaxis().major_label_orientation = np.pi/4
+			xaxis().axis_label = "Subway Stop"
+			yaxis().axis_label = "Date & Time"
+			show()
+
+def to_file(data, fname):
+	with open(fname, 'w') as f:
+		f.write(data)
+	print "wrote file",fname
+
 if __name__=="__main__":
 	#plot_time_evolution()
+	#plot_time_evolution(for_lines=['5'], for_directions=['N'])
 	#plot_departure_delays()
 	#plot_trip_intervals()
-	plot_trip_trajectories()
+	#plot_trip_trajectories()
+
+	timeEvolution = plotWrapperClass(plotTimeEvolution)
+	#timeEvolution.makePlots(for_lines="4", for_directions="N", show_plot=False)
+	timeEvolution.makePlots()
+	"""
+	print timeEvolution.plotObjects
+	for curPlot in timeEvolution.plotObjects:
+		script, div = bokeh.embed.components(curPlot, bokeh.resources.Resources())
+		to_file(script, "test_script")
+		to_file(div, "test_div")
+	"""
