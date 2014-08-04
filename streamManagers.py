@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from read_stream import readMTADataStream
 
 class streamManager():
     def __init__(self):
@@ -10,9 +12,36 @@ class streamManager():
 class liveStreamReader(streamManager):
     def __init__(self):
         streamManager.__init__(self)
+        self.T0 = None
 
-    def read(self):
-        print "Need to set up pull from live stream here based on code in read_stream.py"
+    def read(self, t1, t2):
+        nyct_feed = None
+        attempts = 0
+        while not nyct_feed:
+            attempts += 1
+            nyct_feed = readMTADataStream()
+        print "liveStreamReader ==> (read from live stream",attempts,")",
+        timestamp = nyct_feed.header.timestamp
+        self.T0 = timestamp
+        count = 0
+        newDF = pd.DataFrame()
+        for entity in nyct_feed.entity:
+                if entity.trip_update.trip.trip_id:
+                        stops = [stu for stu in entity.trip_update.stop_time_update]
+                        if len(stops)>0:
+                                count += 1
+                                newDF = newDF.append([[
+                                        int(timestamp),
+                                        str(entity.trip_update.trip.trip_id),
+                                        str(entity.trip_update.trip.start_date),
+                                        str(stops[0].stop_id),
+                                        float(stops[0].arrival.time),
+                                        float(stops[0].departure.time)
+                                ]])
+        print count, "records", len(newDF)
+        newDF.columns = ['timestamp','trip_id','start_date','stop','arrive','depart']
+        newDF.index = np.arange(len(newDF))
+        return newDF
 
 class streamSimulator(streamManager):
     def __init__(self, fname):

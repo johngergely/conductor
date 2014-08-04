@@ -44,10 +44,22 @@ class systemManager():
                 } )
 
                 self.activeTrains = {}
+                self.selectLines = ['4']
+                #self.selectDirections = ['N']
 
 		print "Stop Data Loaded",self.stopSeries.index
 
+        def selectData(self, newDF):
+                newDF['line'] = newDF['trip_id'].map(lambda x: x.split("_")[1][0]) 
+                #newDF['direction'] = newDF['trip_id'].map(lambda x: x.split(".")[-1][0]) 
+                newDF = newDF[newDF['line'].isin(self.selectLines)]
+                newDF = newDF[newDF['stop'].isin(self.stopSeries.index)]
+                return newDF
+
         def streamUpdate(self, newDF):
+                newDF = self.selectData(newDF)
+                print "culled stream data"
+                print newDF[['timestamp', 'trip_id','stop','arrive']]
                 for i__ in newDF.index:
                         self._updateTrain(newDF.loc[i__, 'trip_id'],
                                          newDF.loc[i__, 'timestamp'],
