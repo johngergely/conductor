@@ -14,7 +14,8 @@ class plotManager():
         self.plotMgr = plotDevice
 
         self.updateDataInterval = 30.
-        self.refreshPlotInterval = 2.
+        self.refreshPlotInterval = 5.
+        self.acceleration = 10.
         self.Tend = 3600.*24
 
     def setLifetime(self, Tend):
@@ -46,7 +47,7 @@ class plotManager():
                 self.plotMgr.plot(plotData, t_plot)
 
                 t_plot = t_plot + self.refreshPlotInterval
-		time.sleep(0.1*self.refreshPlotInterval)
+		time.sleep((1./self.acceleration)*self.refreshPlotInterval)
 
             self.clock = self.clock + self.updateDataInterval
             #print "completed plot cycle",self.clock,t_plot

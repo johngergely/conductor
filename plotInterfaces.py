@@ -1,22 +1,49 @@
 from bokeh.plotting import *
-from bokeh.objects import Range1d
+from bokeh.objects import Range1d, HoverTool
+from collections import OrderedDict
+
+SERVER_URL = """http://localhost:5006"""
 
 class bokehPlotInterface():
 	def __init__(self, plot_mode="server"):
 		if plot_mode != "server":
-			print "request bokeh plot mode not set up yet",plot_mode
+			print "requested bokeh plot mode not set up yet",plot_mode
 		else:
-			output_server("plot.html")#, load_from_config=False)
+			output_server("plot.html", url=SERVER_URL)#, load_from_config=False)
 
 		self.renderer = []
 		self.ds = {}
 		self._first_plot = True
+                self._hover_enabled = True
+
+        def init_hover(self):
+                self.TOOLS = ['pan', 'wheel_zoom', 'box_zoom', 'reset', 'hover']
 
 	def init_plot(self, data, timestring):
-		figure(x_range = Range1d(start=-0.5, end=3.5))
+		#figure(x_range = Range1d(start=-0.5, end=3.5))
+                self.init_hover()
+
+                source = ColumnDataSource(
+                        data=dict(
+                                x=data['x'],
+                                y=data['y'],
+                                label=data['name']
+                        )
+                )
+
 		hold()
+
+		scatter(data['x'], y=data['y'], alpha=0.3, color=data['color'], size=data['size'], source=source, tools=self.TOOLS)
+                #text(x, y, text=inds, alpha=0.5, text_font_size="5pt", text_baseline="middle", text_align="center", angle=0)
+
+                hover = [tools for tools in curplot().tools if isinstance(tools, HoverTool)][0]
+                hover.tooltips = OrderedDict([
+                        ("index", "$index"),
+                        ("name", "@label"),
+                        ("lon", "$x"),
+                        ("lat", "$y")
+                ])
 	
-		scatter(data['x'], y=data['y'], alpha=0.3, color=data['color'], size=data['size'])
 
                 self.curplot = curplot
 		self.curplot().title = "Subway Visualization " + str(timestring)
@@ -37,6 +64,7 @@ class bokehPlotInterface():
 		self.ds.data['size'] = data['size']
 		self.ds.data['line_color'] = data['color']
 		self.ds.data['fill_color'] = data['color']
+		self.ds.data['name'] = data['name']
 
         	cursession().store_objects(self.ds)
 		print "try to update plot title",str(timestring)
