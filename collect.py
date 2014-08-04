@@ -233,3 +233,7 @@ def process(fname, file_root=None):
 			print "Wrote DataFrame",file_root + l + "_" + direction + "_stoptimes.csv"
 			isLate.to_csv(file_root + l + "_" + direction + "_howlate.csv")
 			print "Wrote DataFrame",file_root + l + "_" + direction + "_howlate.csv"
+
+if __name__ == "__main__":
+	print "Calling process on mta_data_v2.2014.7_agg.csv"
+	process("mta_data_v2.2014.7_agg.csv")

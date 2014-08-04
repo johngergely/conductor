@@ -6,11 +6,12 @@ import google.protobuf.message
 # MTA Feed API Key
 STREAM_URL = """http://datamine.mta.info/mta_esi.php?key="""
 FEED_ID = """&feed_id=1"""
+FEED_ID_2 = """&feed_id=2"""
 # you need to obtain an API key from the MTA website and place it in this file in your local directory
 with open("my_api_key",'r') as f:
     API_KEY = f.readline()[:-1]
 
-def readMTADataStream():
+def readMTADataStream(use_feed_id=FEED_ID):
     try:
         nyct_feed = gtfs_realtime_pb2.FeedMessage()
     except google.protobuf.message.DecodeError:
@@ -21,7 +22,7 @@ def readMTADataStream():
     #    return None
 
     try:
-        stream = urllib2.urlopen(STREAM_URL + API_KEY + FEED_ID)
+        stream = urllib2.urlopen(STREAM_URL + API_KEY + use_feed_id)
         nyct_feed.ParseFromString(stream.read())
         stream.close()
         return nyct_feed
@@ -61,7 +62,7 @@ if __name__ == "__main__":
         nyct_feed = None
         while not nyct_feed:
             attempts += 1
-            nyct_feed = readMTADataStream()
+            nyct_feed = readMTADataStream(use_feed_id=FEED_ID)
         print "(read successful",attempts,")",
         t = time.localtime()
         filename = "mta_data_v2." + str(t[0]) + "." + str(t[1]) + "." + str(t[2]) + ".csv"
