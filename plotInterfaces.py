@@ -1,12 +1,14 @@
 from bokeh.plotting import *
 from bokeh.objects import Range1d
 
+SERVER_URL = """http://104.131.255.76:5006/"""
+
 class bokehPlotInterface():
 	def __init__(self, plot_mode="server"):
 		if plot_mode != "server":
 			print "request bokeh plot mode not set up yet",plot_mode
 		else:
-			output_server("plot.html")#, load_from_config=False)
+			output_server("plot.html", url=SERVER_URL)#, load_from_config=False)
 
 		self.renderer = []
 		self.ds = {}

@@ -14,7 +14,7 @@ class plotManager():
         self.plotMgr = plotDevice
 
         self.updateDataInterval = 30.
-        self.refreshPlotInterval = 2.
+        self.refreshPlotInterval = 10.
         self.Tend = 3600.*24
 
     def setLifetime(self, Tend):
@@ -34,7 +34,7 @@ class plotManager():
         while self.clock < self.Tend:
             ## this is awkward, specifying interval will need to be redone with live stream
             updateDF = self.streamMgr.read(self.clock, self.clock+self.updateDataInterval)
-            print self.clock, "[",self.clock,self.Tend,"] update DF"
+            print self.clock, "[",self.clock,self.Tend,"] update DF",updateDF['timestamp'][0]
             #print updateDF[['timestamp', 'trip_id','stop','arrive']]
             self.mgr.streamUpdate(updateDF)
 
@@ -46,7 +46,7 @@ class plotManager():
                 self.plotMgr.plot(plotData, t_plot)
 
                 t_plot = t_plot + self.refreshPlotInterval
-		time.sleep(0.1*self.refreshPlotInterval)
+		time.sleep(1*self.refreshPlotInterval)
 
             self.clock = self.clock + self.updateDataInterval
             #print "completed plot cycle",self.clock,t_plot
