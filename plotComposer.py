@@ -14,7 +14,7 @@ class plotManager():
         self.plotMgr = plotDevice
 
         self.updateDataInterval = 30.
-        self.refreshPlotInterval = 10.
+        self.refreshPlotInterval = 5.
         self.acceleration = 1.
         self.Tend = 3600.*24
 
@@ -39,12 +39,14 @@ class plotManager():
             #print updateDF[['timestamp', 'trip_id','stop','arrive']]
             self.mgr.streamUpdate(updateDF)
 
+	    self.plotMgr.init_area(self.mgr.plot_boundaries())
+
             t_plot = self.clock
             t_from_last_update = self.clock
             while (t_plot < (self.clock + self.updateDataInterval)):
                 self.mgr.evolve(t_plot, t_from_last_update)
-                plotData = self.mgr.drawSystem(t_plot)
-                self.plotMgr.plot(plotData, t_plot)
+                staticData, dynamicData, fields, hoverFields = self.mgr.drawSystem(t_plot)
+                self.plotMgr.plot(staticData, dynamicData, fields, hoverFields, t_plot)
 
                 t_plot = t_plot + self.refreshPlotInterval
 		time.sleep((1./self.acceleration)*self.refreshPlotInterval)
@@ -53,7 +55,7 @@ class plotManager():
             #print "completed plot cycle",self.clock,t_plot
 
 if __name__ == "__main__":
-    mgr = systemManager()
+    mgr = systemManager(setLines=['4','5','6'], setDirections=['N','S'])
     liveStream = liveStreamReader()      
     plotDevice= bokehPlotInterface()
 
