@@ -1,6 +1,8 @@
+import pandas as pd
 from bokeh.plotting import *
 from bokeh.objects import Range1d, HoverTool
 from collections import OrderedDict
+import time
 
 SERVER_URL = """http://localhost:5006"""
 
@@ -16,63 +18,81 @@ class bokehPlotInterface():
 		self._first_plot = True
                 self._hover_enabled = True
 
-        def init_hover(self):
-                self.TOOLS = ['pan', 'wheel_zoom', 'box_zoom', 'reset', 'hover']
+        def init_hover(self, data, fields):
+                if self._hover_enabled:
+                        self.TOOLS = ['pan', 'wheel_zoom', 'box_zoom', 'resize', 'reset', 'hover']
+                else:
+                        self.TOOLS = ['pan', 'wheel_zoom', 'box_zoom', 'resize', 'reset']
 
-	def init_plot(self, data, timestring):
-		#figure(x_range = Range1d(start=-0.5, end=3.5))
-                self.init_hover()
+		#choosefields = {'train':['name','approaching','duration','late'], 'station':['name','x','y']}
+		columnDict = {}
+		hoverlist = []
+		for f in fields:
+			columnDict[f] = data[f].values
+			hoverlist.append(("\"" + f + "\"" , "\"@" + f + "\""))
 
-                source = ColumnDataSource(
-                        data=dict(
-                                x=data['x'],
-                                y=data['y'],
-                                label=data['name']
-                        )
-                )
+                self.source = ColumnDataSource(data=columnDict)
+		self.hoverDict = OrderedDict(hoverlist)
+
+	def init_area(self, (xmin, xmax, ymin, ymax)):
+		self.xmin = xmin
+		self.xmax = xmax
+		self.ymin = ymin
+		self.ymax = ymax
+		print "ESTABLISHED PLOT BOUNDARIES"
+		print self.xmin, self.xmax
+		print self.ymin, self.ymax
+
+	def init_plot(self, allData, hoverFields, timestring):
+                self.init_hover(allData, hoverFields)
+		#staticplot = self.static_plot(staticData)
+
+                #self.xmin = data['x'].min()
+                #self.ymax = data['y'].max()
+
+                figure(x_range=Range1d(start=self.xmin, end=self.xmax),
+			y_range=Range1d(start=self.ymin, end=self.ymax),
+			x_axis_type=None,
+			y_axis_type=None,
+                       	min_border=0,
+                       	outline_line_color=None)
 
 		hold()
 
-		scatter(data['x'], y=data['y'], alpha=0.3, color=data['color'], size=data['size'], source=source, tools=self.TOOLS)
-                #text(x, y, text=inds, alpha=0.5, text_font_size="5pt", text_baseline="middle", text_align="center", angle=0)
+		scatter(allData['x'], y=allData['y'], alpha=0.3, color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
 
+                #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
+
+                # get hold of this to display hover data
                 hover = [tools for tools in curplot().tools if isinstance(tools, HoverTool)][0]
-                hover.tooltips = OrderedDict([
-                        ("index", "$index"),
-                        ("name", "@label"),
-                        ("lon", "$x"),
-                        ("lat", "$y")
-                ])
-	
+		hover.tooltips = self.hoverDict
 
                 self.curplot = curplot
-		self.curplot().title = "Subway Visualization " + str(timestring)
-		#self.curplot().x_range = Range1d(start=0, end=4)
-		#self.curplot().y_range = Range1d(start=0, end=4)
-		#self.title = curplot().title
-		#xaxis().major_label_orientation = np.pi/4
-		xaxis().axis_label = "Subway Stop"
-		yaxis().axis_label = ""
+
+		curplot().title = "Subway Visualization"
+		xaxis().grid_line_color = None
+		yaxis().grid_line_color = None
 		show()
+
+                # get hold of this to refresh data for animation
 		self.renderer = [r for r in curplot().renderers if isinstance(r, Glyph)][0]
 		self.ds = self.renderer.data_source
+
+
 		self._first_plot = False
 
-	def animate_plot(self, data, timestring):
-		self.ds.data['x'] = data['x']
-		self.ds.data['y'] = data['y']
-		self.ds.data['size'] = data['size']
-		self.ds.data['line_color'] = data['color']
-		self.ds.data['fill_color'] = data['color']
-		self.ds.data['name'] = data['name']
+	def animate_plot(self, data, fields, timestring):
+		for f in fields:
+			self.ds.data[f] = data[f]
+
+                #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
 
         	cursession().store_objects(self.ds)
-		print "try to update plot title",str(timestring)
-		curplot().title = "Subway Visualization " + str(timestring)
 	
-	def plot(self, data, timestring):
+	def plot(self, staticData, dynamicData, dynamicFields, hoverFields, timestring):
+		df = pd.concat([staticData, dynamicData], axis=0)
 		if self._first_plot:
-			self.init_plot(data, timestring)
+			self.init_plot(df, hoverFields, timestring)
 		else:
-			self.animate_plot(data, timestring)
+			self.animate_plot(df, dynamicFields, timestring)
 
