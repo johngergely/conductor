@@ -18,7 +18,7 @@ class bokehPlotInterface():
 		self._first_plot = True
                 self._hover_enabled = True
 
-        def init_hover(self, data, fields):
+        def _init_hover(self, data, fields):
                 if self._hover_enabled:
                         self.TOOLS = ['pan', 'wheel_zoom', 'box_zoom', 'resize', 'reset', 'hover']
                 else:
@@ -43,8 +43,8 @@ class bokehPlotInterface():
 		print self.xmin, self.xmax
 		print self.ymin, self.ymax
 
-	def init_plot(self, allData, hoverFields, timestring):
-                self.init_hover(allData, hoverFields)
+	def _init_plot(self, allData, lineData, hoverFields, timestring):
+                self._init_hover(allData, hoverFields)
 		#staticplot = self.static_plot(staticData)
 
                 #self.xmin = data['x'].min()
@@ -59,7 +59,9 @@ class bokehPlotInterface():
 
 		hold()
 
-		scatter(allData['x'], y=allData['y'], alpha=0.3, color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
+		scatter(allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
+
+       	        multi_line(lineData['x'], lineData['y'], alpha=lineData['alpha'], color=lineData['color'])
 
                 #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
 
@@ -81,7 +83,7 @@ class bokehPlotInterface():
 
 		self._first_plot = False
 
-	def animate_plot(self, data, fields, timestring):
+	def _animate_plot(self, data, lineData, fields, timestring):
 		for f in fields:
 			self.ds.data[f] = data[f]
 
@@ -89,10 +91,10 @@ class bokehPlotInterface():
 
         	cursession().store_objects(self.ds)
 	
-	def plot(self, staticData, dynamicData, dynamicFields, hoverFields, timestring):
+	def plot(self, staticData, dynamicData, lineData, dynamicFields, hoverFields, timestring):
 		df = pd.concat([staticData, dynamicData], axis=0)
 		if self._first_plot:
-			self.init_plot(df, hoverFields, timestring)
+			self._init_plot(df, lineData, hoverFields, timestring)
 		else:
-			self.animate_plot(df, dynamicFields, timestring)
+			self._animate_plot(df, lineData, dynamicFields, timestring)
 

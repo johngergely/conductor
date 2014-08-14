@@ -14,7 +14,7 @@ class plotManager():
         self.plotMgr = plotDevice
 
         self.updateDataInterval = 30.
-        self.refreshPlotInterval = 5.
+        self.refreshPlotInterval = 2.
         self.acceleration = 1.
         self.Tend = 3600.*24
 
@@ -45,8 +45,8 @@ class plotManager():
             t_from_last_update = self.clock
             while (t_plot < (self.clock + self.updateDataInterval)):
                 self.mgr.evolve(t_plot, t_from_last_update)
-                staticData, dynamicData, fields, hoverFields = self.mgr.drawSystem(t_plot)
-                self.plotMgr.plot(staticData, dynamicData, fields, hoverFields, t_plot)
+                staticData, dynamicData, lineData, fields, hoverFields = self.mgr.drawSystem(t_plot)
+                self.plotMgr.plot(staticData, dynamicData, lineData, fields, hoverFields, t_plot)
 
                 t_plot = t_plot + self.refreshPlotInterval
 		time.sleep((1./self.acceleration)*self.refreshPlotInterval)

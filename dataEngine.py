@@ -1,14 +1,12 @@
 import numpy as np
 import pandas as pd
 import math
+import time
 
 from stations import station_names
-from collect import get_TOD_reference
+from collect import get_TOD_reference, nice_time
 
 from systemData import stationLoc, routeData
-#SCALE_GEOM = 1.0
-SCALE_GEOM = math.cos(math.pi/4 * 40.7)
-print "goemetric scaling",SCALE_GEOM
 
 def _null_tag_for(trip_id):
     ll = trip_id.split("_")[1][0]
@@ -40,13 +38,23 @@ class systemManager():
                     self.stopSeries[si] = stopObj(si, self.stationLoc[si,:])
 
                 self._activeRoutes = {}
+                self._allRoutes = []
+                for ll in ['4','5','6']:
+                    for dd in ['N','S']:
+                        routeSlice = self.routeData.get(ll, dd)
+                        for ri in routeSlice.index:
+                                rData = routeSlice.loc[ri,:]
+                                #print "instantiating route",ri,rData
+                                self._allRoutes.append(routeObj(ri, rData['origin'], rData['destination'], self.stationLoc)) 
+                print "INITIALIZED ALL ROUTES",len(self._allRoutes)
+
                 self.activeTrains = {}
 
 		#print "Stop Data Loaded",self.stopSeries.index
 
 	def plot_boundaries(self):
 		xmin, xmax, ymin, ymax = self.stationLoc.get_area()
-		return SCALE_GEOM*xmin, SCALE_GEOM*xmax, ymin, ymax
+		return xmin, xmax, ymin, ymax
 
         def selectData(self, newDF):
                 newDF['line'] = newDF['trip_id'].map(lambda x: x.split("_")[1][0]) 
@@ -87,10 +95,23 @@ class systemManager():
 		scatterData = pd.DataFrame(index=[index_list], columns=fields)
 		for train in self.activeTrains.keys():
 			scatterData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
+
+                lineData = {'x':[], 'y':[], 'alpha':[], 'color':[]}
+                #for k in self._activeRoutes.keys():
+                #    route = self._activeRoutes[k]
+                #    for ii in lineData.keys():
+                #        lineData[ii].append(route.data().loc[k,ii])
+                #    print 'DRAW ROUTE',route['id'],route.data()
+                for route in self._allRoutes:
+                    for ii in lineData.keys():
+                            route_index = route.data().index[0]
+                            lineData[ii].append(route.data().loc[route_index,ii])
+                        #print lineData[ii][-1]
+                    #print 'DRAW ROUTE',route['id'],route.data()
 		#print "DRAW compiled data"
 		#print scatterData
 		#self.plotInterface.plot(scatterData, timestring)
-		return stationData, scatterData, fields, ['name','info']
+		return stationData, scatterData, lineData, fields, ['name','info']
 		#return  pd.concat([stationData, scatterData], axis=0), fields
 		#return  scatterData, fields
 
@@ -130,18 +151,6 @@ class plotDataObj():
 
 	def setData(self, setDF):
 		self.DF = setDF
-
-	def x(self):
-		return self.DF['x']
-
-	def y(self):
-		return self.DF['y']
-
-	def color(self):
-		return self.DF['color']
-
-	def size(self):
-		return self.DF['size']
 
 	def data(self):
 		return self.DF
@@ -224,12 +233,13 @@ class trainObj(vizComponent):
 			self.attrib['t_late'] = (timestamp - self.attrib['sched_arrival'])/60.
 		## x, y, color, size, name, info(string contains approaching, duration, late)
 		infoString = _make_string({
+                        "time":time.ctime(timestamp),#nice_time(timestamp, military=False),
 			"approaching":station_names[self['next_stop']],
 			"duration":self['duration'],
 			"late":self.attrib['t_late']
 			})
 		quickPlotData = pd.DataFrame(index=[self['id']], columns=['x','y','color','size','alpha','name', 'info'],
-			data=[[SCALE_GEOM*coords[0], coords[1], self._calc_color(), float(15), float(0.5),
+			data=[[coords[0], coords[1], self._calc_color(), float(12), float(0.3),
 				self['name'], infoString]]
 			)
 		self.setPlotData(quickPlotData)
@@ -261,10 +271,10 @@ class stopObj(vizComponent):
 		#self.setPlotData(pd.DataFrame(index=[self['id']], columns=['x','y','color','size'], data=[[float(self.attrib['grid'][0]), float(self.attrib['grid'][1]), 'blue', float(10)]]))
 		infoString = _make_string({
 			"lat" : self.attrib['lat'],
-			"lon" : SCALE_GEOM*float(self.attrib['lon'])
+			"lon" : float(self.attrib['lon'])
 			})
 		self.setPlotData(pd.DataFrame(index=[self['id']], columns=['x','y','color','size','alpha','name','info'],
-			data=[[SCALE_GEOM*float(self.attrib['lon']), float(self.attrib['lat']), 'blue', float(25), float(0.2), str(self['name']) + str(" Station"), infoString
+			data=[[float(self.attrib['lon']), float(self.attrib['lat']), '#800000', float(5), float(1.0), str(self['name']) + str(" Station"), infoString
 				]]))
 
 class routeObj(vizComponent):
@@ -282,7 +292,14 @@ class routeObj(vizComponent):
                 self.origin_coord = np.array((origin_lon, origin_lat))
                 self.dest_coord = np.array((dest_lon, dest_lat))
                 #print "ROUTE",self['id'], self.origin_coord, self.dest_coord
+                self.x_coords = np.array((origin_lon, dest_lon))
+                self.y_coords = np.array((origin_lat, dest_lat))
+                #print "ROUTE",self['id'], self.x_coords, self.y_coords
                 self.activeTrains = {}
+                infoString = ""
+		self.setPlotData(pd.DataFrame(index=[self['id']], columns=['x','y','color','alpha','name','info'],
+			data=[[self.x_coords, self.y_coords, '#800000', float(1.0), str(self['id']), infoString
+				]]))
 
         def trainPosition(self, trip_id, timestamp):
                 t_start, t_arrive, isLate = self.activeTrains[trip_id]
