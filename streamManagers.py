@@ -41,7 +41,7 @@ class liveStreamReader(streamManager):
         print count, "records", len(newDF)
         newDF.columns = ['timestamp','trip_id','start_date','stop','arrive','depart']
         newDF.index = np.arange(len(newDF))
-        return newDF
+        return self.T0, newDF
 
 class streamSimulator(streamManager):
     def __init__(self, fname):
@@ -71,4 +71,4 @@ class streamSimulator(streamManager):
             t__ = self.df.loc[self.index_position, 'timestamp']
 	#print "    collect range",index_range
 
-        return self.df.loc[index_range,:]
+        return t1, self.df.loc[index_range,:]

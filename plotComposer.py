@@ -14,7 +14,7 @@ class plotManager():
         self.plotMgr = plotDevice
 
         self.updateDataInterval = 30.
-        self.refreshPlotInterval = 2.
+        self.refreshPlotInterval = 5.
         self.acceleration = 1.
         self.Tend = 3600.*24
 
@@ -26,33 +26,37 @@ class plotManager():
         print "data update interval",self.updateDataInterval
 
     def run(self, use_T0=None):
+        self.T = time.time()
         if use_T0:
-                self.clock = use_T0
-        else: 
-                self.clock = time.time()
-        self.Tend = self.clock + self.Tend
+                self.T = use_T0
+        self.Tend = self.T + self.Tend
 
-        while self.clock < self.Tend:
-            ## this is awkward, specifying interval will need to be redone with live stream
-            updateDF = self.streamMgr.read(self.clock, self.clock+self.updateDataInterval)
-            print self.clock, "[",self.clock,self.Tend,"] update DF"
-            #print updateDF[['timestamp', 'trip_id','stop','arrive']]
-            self.mgr.streamUpdate(updateDF)
+	T_last_update = 0.
+	T_last_plot = 0.
+	initPlot = False
 
-	    self.plotMgr.init_area(self.mgr.plot_boundaries())
+        while self.T < self.Tend:
+	    if self.T - T_last_update > self.updateDataInterval:
+		T_last_update = self.T
+            	t_update, updateDF = self.streamMgr.read(self.T, self.T+self.updateDataInterval)
+            	self.mgr.streamUpdate(updateDF)
+	    	t_lag = time.time() - t_update
+            	print t_update, self.T, "[",self.T,self.Tend,"] update DF",t_lag
 
-            t_plot = self.clock
-            t_from_last_update = self.clock
-            while (t_plot < (self.clock + self.updateDataInterval)):
-                self.mgr.evolve(t_plot, t_from_last_update)
+	    if not initPlot:
+	        self.plotMgr.init_area(self.mgr.plot_boundaries())
+		initPlot = True
+
+            self.T = time.time()
+            if self.T - T_last_plot > self.refreshPlotInterval:
+		t_plot = t_update + self.T - T_last_update
+                self.mgr.evolve(t_plot, t_update)
                 staticData, dynamicData, lineData, fields, hoverFields = self.mgr.drawSystem(t_plot)
                 self.plotMgr.plot(staticData, dynamicData, lineData, fields, hoverFields, t_plot)
+		T_last_plot = self.T
 
-                t_plot = t_plot + self.refreshPlotInterval
-		time.sleep((1./self.acceleration)*self.refreshPlotInterval)
-
-            self.clock = self.clock + self.updateDataInterval
-            #print "completed plot cycle",self.clock,t_plot
+	    #time.sleep((1./self.acceleration)*self.refreshPlotInterval)
+            self.T = time.time()#t_plot + self.refreshPlotInterval
 
 if __name__ == "__main__":
     mgr = systemManager(setLines=['4','5','6'], setDirections=['N','S'])
