@@ -6,8 +6,6 @@ from systemData import routeData, stationLoc
 
 TIME_RESOLUTION_FACTOR = 1e9
 
-NULL_STATS = {"min":240, "50%":240, "75%":240}
-
 def _human_time(timestamp):
     return time.localtime(timestamp)
 
@@ -25,7 +23,7 @@ class aggregator():
         print "Imported historical data with date range",self._data_tmin,self._data_tmax
         self.df = self.base_df
 
-    def reset(self):
+    def reset_df(self):
         self.df = self.base_df
 
     def select_range(self, criteria):
@@ -34,15 +32,8 @@ class aggregator():
     def process(self, listOfSegmentTuples):
         listOfStats = []
         for (origin,dest) in listOfSegmentTuples:
-	    listOfStats.append(self.process_tuple(self, origin, dest))
-	return listOfStats
-
-    def process_tuple(self, origin, dest):
-	if origin not in self.df.columns:
-	    return NULL_STATS
-	if dest not in self.df.columns:
-	    return NULL_STATS
-        diff = self.df[dest] - self.df[origin]
-        diff_secs=pd.Series(diff.dropna().values.astype(float)/TIME_RESOLUTION_FACTOR)
-        stats = diff_secs.describe()
-        return stats
+            diff = self.df[dest] - self.df[origin]
+            diff_secs=pd.Series(diff.dropna().values.astype(float)/TIME_RESOLUTION_FACTOR)
+            stats = diff_secs.describe()
+            listOfStats.append(stats)
+        return listOfStats
