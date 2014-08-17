@@ -24,7 +24,6 @@ class bokehPlotInterface():
                 else:
                         self.TOOLS = ['pan', 'wheel_zoom', 'box_zoom', 'resize', 'reset']
 
-		print "INIT HOVER -- TOOLS ARE",self.TOOLS
 		#choosefields = {'train':['name','approaching','duration','late'], 'station':['name','x','y']}
 		columnDict = {}
 		hoverlist = []
@@ -68,12 +67,8 @@ class bokehPlotInterface():
                 #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
 
                 # get hold of this to display hover data
-                hoverList = [tools for tools in curplot().tools if isinstance(tools, HoverTool)]
-		if len(hoverList) > 0:
-			hover = hoverList[0]
-			hover.tooltips = self.hoverDict
-		else:
-			print "HOVER TOOL NOT FOUND"
+                hover = [tools for tools in curplot().tools if isinstance(tools, HoverTool)][0]
+		hover.tooltips = self.hoverDict
 
                 self.curplot = curplot
 
