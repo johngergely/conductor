@@ -48,15 +48,15 @@ def TOD_value(t,t_ref):
     return t - t_ref
 
 def nice_time(t, military=True):
-    """Format raw time-of-day argument in seconds"""
-    hh = int(t/3600.)
-    mm = int((t%3600.)/60.)
-    suffix = ""
+    day, mon, day, timestr, yr = time.ctime(t).split()
+    hh, mm, ss = timestr.split(":")
+    hh = int(hh)
+    suffix = "AM"
     if not military:
-        suffix = "AM"
         if hh>12:
-            return str(hh%12) + ":" + str(mm) + "PM"
-    return str(hh) + ":" + str(mm) + suffix
+	    hh = hh - 12
+	    suffix = "PM"
+    return str(hh) + ":" + mm + " " + suffix
 
 def df_stop_frequency(direction, for_lines=['4','5','6'], fname="default", write_df_root="stopFreq", dt=120):
         D = load_df(fname)
