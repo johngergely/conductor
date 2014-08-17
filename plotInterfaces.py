@@ -59,9 +59,10 @@ class bokehPlotInterface():
 
 		hold()
 
-		scatter(allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
 
-       	        multi_line(lineData['x'], lineData['y'], alpha=lineData['alpha'], color=lineData['color'])
+       	        multi_line(lineData['x'], lineData['y'], alpha=lineData['alpha'], color=lineData['color'], line_width=lineData['line_width'], line_cap="round", line_join="round")
+		
+		scatter(allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
 
                 #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
 
@@ -71,7 +72,7 @@ class bokehPlotInterface():
 
                 self.curplot = curplot
 
-		curplot().title = "Subway Visualization"
+		curplot().title = "Conductor - Real-time Subway Visualization and Analytics"
 		xaxis().grid_line_color = None
 		yaxis().grid_line_color = None
 		show()
@@ -86,6 +87,7 @@ class bokehPlotInterface():
 	def _animate_plot(self, data, lineData, fields, timestring):
 		for f in fields:
 			self.ds.data[f] = data[f]
+			#print data[f].values
 
                 #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
 
