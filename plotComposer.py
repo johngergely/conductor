@@ -37,6 +37,7 @@ class plotManager():
 
         while self.T < self.Tend:
 	    if self.T - T_last_update > self.updateDataInterval:
+		print self.T, "UPDATE"
 		T_last_update = self.T
             	t_update, updateDF = self.streamMgr.read(self.T, self.T+self.updateDataInterval)
             	self.mgr.streamUpdate(updateDF)
@@ -49,6 +50,7 @@ class plotManager():
 
             self.T = time.time()
             if self.T - T_last_plot > self.refreshPlotInterval:
+		print self.T, "PLOT"
 		t_plot = t_update + self.T - T_last_update
                 self.mgr.evolve(t_plot, t_update)
                 staticData, dynamicData, lineData, fields, hoverFields = self.mgr.drawSystem(t_plot)

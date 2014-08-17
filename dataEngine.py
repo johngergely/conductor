@@ -325,12 +325,13 @@ class routeObj(vizComponent):
                 self.activeTrains = {}
                 infoString = ""
 		self.setPlotData(pd.DataFrame(index=[self['id']+"_base", self['id']+"_median", self['id']+"_75pct"],
-			columns=['x','y','color','alpha','line_width','name','info'],
+			#columns=['x','y','color','alpha','line_width','name','info'],
+			columns=['x','y','color','alpha','line_width','name'],
 			data=[
 				#[self.x_coords, self.y_coords, BLUE, float(1.0), line_mult*ONE_BY_SIXTY*self.stats['min'], str(self['id']), infoString],
-				[self.x_coords, self.y_coords, BLUE, 1.0, 1.0, str(self['id']), infoString],
-				[self.x_coords, self.y_coords, GOLDENROD, 0.2, line_mult*self.stats['50%']/self.stats['min'], str(self['id']), infoString],
-				[self.x_coords, self.y_coords, LT_YELLOW, 0.2, line_mult*self.stats['75%']/self.stats['min'], str(self['id']), infoString]
+				[self.x_coords, self.y_coords, BLUE, 1.0, 1.0, str(self['id'])],
+				[self.x_coords, self.y_coords, GOLDENROD, 0.2, line_mult*self.stats['50%']/self.stats['min'], str(self['id'])],
+				[self.x_coords, self.y_coords, LT_YELLOW, 0.2, line_mult*self.stats['75%']/self.stats['min'], str(self['id'])]
 			     ]
 			))
 
