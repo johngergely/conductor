@@ -4,7 +4,7 @@ from bokeh.objects import Range1d, HoverTool
 from collections import OrderedDict
 import time
 
-SERVER_URL = """http://localhost:5006"""
+SERVER_URL = """http://104.131.255.76:5006/"""
 
 class bokehPlotInterface():
 	def __init__(self, plot_mode="server"):

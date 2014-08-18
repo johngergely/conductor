@@ -30,7 +30,6 @@ class plotManager():
         if use_T0:
                 self.T = use_T0
         self.Tend = self.T + self.Tend
-
 	T_last_update = 0.
 	T_last_plot = 0.
 	initPlot = False
