@@ -23,12 +23,16 @@ GREEN = "#009933"
 def unit_perp(U, root_sign=1.):
     ux = U[0]
     uy = U[1]
+    if uy==0.:
+            print "SAVING PERP CALC",uy
+            uy = ux*1e-7
     xi = ux*ux/(uy*uy)
     vx = math.sqrt(xi/(1.+xi))
     if root_sign*vx < ux:
 	    vx = -1.*vx
     vy = -ux*vx/uy
-    return np.array((vx, vy))
+    M = math.sqrt(vx*vx + vy*vy)
+    return np.array((vx/M, vy/M))
 
 def _null_tag_for(trip_id):
     ll = trip_id.split("_")[1][0]
@@ -124,11 +128,12 @@ class systemManager():
 		for train in self.activeTrains.keys():
 			scatterData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
 
-		lineData = {'x':[], 'y':[], 'alpha':[], 'color':[], 'line_width':[]}
+                lineData = {'x':[], 'y':[], 't_min':[], 't_50pct':[], 't_75pct':[], 'name':[], 'info':[]}
                 for route in self._allRoutes.values():
                     for ii in lineData.keys():
 			    for route_index in route.data().index:
                             	lineData[ii].append(route.data().loc[route_index,ii])
+
 		return stationData, scatterData, lineData, fields, ['name','info']
 
 	def _updateTrain(self, trip_id, timestamp, next_stop, t_arrive, t_depart):
@@ -319,15 +324,10 @@ class routeObj(vizComponent):
                 #print "ROUTE",self['id'], self.x_coords, self.y_coords
                 self.activeTrains = {}
                 infoString = "route"
-		self.setPlotData(pd.DataFrame(index=[self['id']+"_base", self['id']+"_median", self['id']+"_75pct"],
-			columns=['x','y','color','alpha','line_width','name','info'],
-			data=[
-				#[self.x_coords, self.y_coords, BLUE, float(1.0), line_mult*ONE_BY_SIXTY*self.stats['min'], str(self['id']), infoString],
-				[self.x_coords, self.y_coords, BLUE, 1.0, 1.0, str(self['id']), infoString],
-				[self.x_coords, self.y_coords, GOLDENROD, 0.2, line_mult*self.stats['50%']/self.stats['min'], str(self['id']), infoString],
-				[self.x_coords, self.y_coords, LT_YELLOW, 0.2, line_mult*self.stats['75%']/self.stats['min'], str(self['id']), infoString]
-			     ]
-			))
+		self.setPlotData(pd.DataFrame(index=[self['id']],
+                    columns=['x','y','t_min','t_50pct','t_75pct','name','info'],
+                    data=[[self.x_coords, self.y_coords, str(self.stats['min']), str(self.stats['50%']), str(self.stats['75%']),  str(self['id']), infoString]]
+                    ))
 
         def trainPosition(self, trip_id, timestamp, dir_shift=True):
                 t_start, t_arrive, isLate = self.activeTrains[trip_id]
