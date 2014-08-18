@@ -18,6 +18,15 @@ class bokehPlotInterface():
 		self._first_plot = True
                 self._hover_enabled = True
 
+	def init_area(self, (xmin, xmax, ymin, ymax)):
+		self.xmin = xmin
+		self.xmax = xmax
+		self.ymin = ymin
+		self.ymax = ymax
+		print "ESTABLISHED PLOT BOUNDARIES"
+		print self.xmin, self.xmax
+		print self.ymin, self.ymax
+
         def _init_hover(self, data, fields):
                 if self._hover_enabled:
                         self.TOOLS = ['pan', 'wheel_zoom', 'box_zoom', 'resize', 'reset', 'hover']
@@ -33,15 +42,6 @@ class bokehPlotInterface():
 
                 self.source = ColumnDataSource(data=columnDict)
 		self.hoverDict = OrderedDict(hoverlist)
-
-	def init_area(self, (xmin, xmax, ymin, ymax)):
-		self.xmin = xmin
-		self.xmax = xmax
-		self.ymin = ymin
-		self.ymax = ymax
-		print "ESTABLISHED PLOT BOUNDARIES"
-		print self.xmin, self.xmax
-		print self.ymin, self.ymax
 
 	def _init_plot(self, allData, lineData, hoverFields, timestring):
                 self._init_hover(allData, hoverFields)
@@ -59,10 +59,9 @@ class bokehPlotInterface():
 
 		hold()
 
-
-       	        multi_line(lineData['x'], lineData['y'], alpha=lineData['alpha'], color=lineData['color'], line_width=lineData['line_width'], line_cap="round", line_join="round")
-		
 		scatter(allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
+       	        
+		multi_line(lineData['x'], lineData['y'], alpha=lineData['alpha'], color=lineData['color'], line_width=lineData['line_width'], line_cap="round", line_join="round")
 
                 #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
 
@@ -100,3 +99,6 @@ class bokehPlotInterface():
 		else:
 			self._animate_plot(df, lineData, dynamicFields, timestring)
 
+if __name__=="__main__":
+	print "TESTING PLOT WITH DATA SET"
+	#static = pd.DataFrame(index=[1,2,3], [[1,1],[2,2],[3,3]])

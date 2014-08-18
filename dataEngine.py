@@ -125,11 +125,6 @@ class systemManager():
 			scatterData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
 
 		lineData = {'x':[], 'y':[], 'alpha':[], 'color':[], 'line_width':[]}
-                #for k in self._activeRoutes.keys():
-                #    route = self._activeRoutes[k]
-                #    for ii in lineData.keys():
-                #        lineData[ii].append(route.data().loc[k,ii])
-                #    print 'DRAW ROUTE',route['id'],route.data()
                 for route in self._allRoutes.values():
                     for ii in lineData.keys():
 			    for route_index in route.data().index:
@@ -323,7 +318,7 @@ class routeObj(vizComponent):
                 self.y_coords = np.array((origin_lat, dest_lat))
                 #print "ROUTE",self['id'], self.x_coords, self.y_coords
                 self.activeTrains = {}
-                infoString = ""
+                infoString = "route"
 		self.setPlotData(pd.DataFrame(index=[self['id']+"_base", self['id']+"_median", self['id']+"_75pct"],
 			columns=['x','y','color','alpha','line_width','name','info'],
 			data=[
