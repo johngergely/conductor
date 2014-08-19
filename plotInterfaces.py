@@ -7,6 +7,7 @@ import time
 import numpy as np
 
 from dataEngine import unit_perp
+from createLink import make_URL
 
 SERVER_URL = """http://104.131.255.76:5006/"""
 
@@ -129,6 +130,7 @@ class bokehPlotInterface():
 		self.hoverDict = OrderedDict(hoverlist)
 
 	def _init_plot(self, allData, lineData, hoverFields, timestring):
+                make_URL(SERVER_URL)
                 self._init_hover(allData, hoverFields)
 		#staticplot = self.static_plot(staticData)
 
