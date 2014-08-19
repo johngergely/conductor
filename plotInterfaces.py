@@ -1,6 +1,7 @@
 import pandas as pd
 from bokeh.plotting import *
 from bokeh.objects import Range1d, HoverTool
+from bokeh.embed import autoload_server
 from collections import OrderedDict
 
 import time
@@ -9,7 +10,8 @@ import numpy as np
 from dataEngine import unit_perp
 from createLink import make_URL
 
-SERVER_URL = """http://104.131.255.76:5006/"""
+#SERVER_URL = """http://104.131.255.76:5006/"""
+SERVER_URL = """http://127.0.0.1:5006/"""
 
 # color palette
 BRICK = "#800000"
@@ -130,7 +132,6 @@ class bokehPlotInterface():
 		self.hoverDict = OrderedDict(hoverlist)
 
 	def _init_plot(self, allData, lineData, hoverFields, timestring):
-                make_URL(SERVER_URL)
                 self._init_hover(allData, hoverFields)
 		#staticplot = self.static_plot(staticData)
 
@@ -172,6 +173,10 @@ class bokehPlotInterface():
 
 
 		self._first_plot = False
+
+                print "calling autoload_server"
+                EMBED_DATA = autoload_server(curplot(), cursession())
+                make_URL(SERVER_URL, EMBED_DATA)
 
 	def _animate_plot(self, data, lineData, fields, timestring):
 		for f in fields:
