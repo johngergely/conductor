@@ -126,10 +126,14 @@ class bokehPlotInterface():
 		hoverlist = []
 		for f in fields:
 			columnDict[f] = data[f].values
-			hoverlist.append(("\"" + f + "\"" , "\"@" + f + "\""))
+			#hoverlist.append(("\"" + f + "\"" , "\"@" + f + "\""))
+			hoverlist.append((f, "@" + f))
+
 
                 self.source = ColumnDataSource(data=columnDict)
 		self.hoverDict = OrderedDict(hoverlist)
+                print "HOVER FIELDS"
+                print self.hoverDict
 
 	def _init_plot(self, allData, lineData, hoverFields, timestring):
                 self._init_hover(allData, hoverFields)
