@@ -10,8 +10,7 @@ import numpy as np
 from dataEngine import unit_perp
 from createLink import make_URL
 
-#SERVER_URL = """http://104.131.255.76:5006/"""
-SERVER_URL = """http://127.0.0.1:5006/"""
+SERVER_URL = """http://104.131.255.76:5006/"""
 
 # color palette
 BRICK = "#800000"
