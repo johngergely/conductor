@@ -53,6 +53,9 @@ class systemManager():
                 self.routeData = routeData()
                 self.stationLoc = stationLoc()
 
+                self.hover_fields = ['name','time','location','schedule','data']
+		self.plot_fields = ['x', 'y', 'color', 'size', 'alpha'] + self.hover_fields
+
                 # for stops we need only use 'N' objects
                 stopList = []
                 for ll in ['4','5','6']:
@@ -61,7 +64,7 @@ class systemManager():
                 stopList = set(stopList)
                 self.stopSeries = pd.Series(index=stopList)
                 for si in self.stopSeries.index:
-                    self.stopSeries[si] = stopObj(si, self.stationLoc[si,:])
+                    self.stopSeries[si] = stopObj(si, self.stationLoc[si,:], self.plot_fields)
 
                 self._activeRoutes = {}
 		#self._routestats = {}
@@ -111,12 +114,11 @@ class systemManager():
                         routeOrigin, routeDest = train.attrib['routeID']
 			train_id = train.attrib['id']
                         coords, isLate = self._getRoute((routeOrigin, routeDest)).trainPosition(train_id, t_now)
-		        train.update_position(t_now, coords, isLate)
+		        train.update_position(t_now, coords, isLate, self.plot_fields)
 
 	def drawSystem(self, timestring):
-		fields = ['name', 'x', 'y', 'color', 'size', 'alpha', 'info']
 		index_list = list(self.stopSeries.index.values)
-		stationData = pd.DataFrame(index=[index_list], columns=fields)
+		stationData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
 		for stop in self.stopSeries.index:
 			stationData.loc[stop,:] = self.stopSeries[stop].data().loc[stop,:]
 
@@ -124,7 +126,7 @@ class systemManager():
 		for k in self.activeTrains.keys():
 			if self.activeTrains[k].attrib['active_trip']:
 				index_list.append(k)
-		scatterData = pd.DataFrame(index=[index_list], columns=fields)
+		scatterData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
 		for train in self.activeTrains.keys():
 			scatterData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
 
@@ -134,7 +136,10 @@ class systemManager():
 			    for route_index in route.data().index:
                             	lineData[ii].append(route.data().loc[route_index,ii])
 
-		return stationData, scatterData, lineData, fields, ['name','info']
+                #print "DATA"
+                #print stationData
+                #print scatterData
+		return stationData, scatterData, lineData, self.plot_fields, self.hover_fields
 
 	def _updateTrain(self, trip_id, timestamp, next_stop, t_arrive, t_depart):
 		t_arrive = max(t_arrive, t_depart)
@@ -251,24 +256,21 @@ class trainObj(vizComponent):
 				self.attrib['t_late'] = (time_of_update - t_arrive)/60.
                         return False, self.attrib['routeID'], self.attrib['routeID']
 
-        def update_position(self, timestamp, coords, isLate):
+        def update_position(self, timestamp, coords, isLate, fields):
 		self.update_count += 1
                 self.attrib['isLate'] = isLate 
 		if isLate:
 			self.attrib['t_late'] = (timestamp - self.attrib['sched_arrival'])/60.
-		## x, y, color, size, name, info(string contains approaching, duration, late)
-		infoString = _make_string({
-                        "time":nice_time(timestamp, military=False),
-			"approaching":station_names[self['next_stop']],
-			"duration":"%.1f" % float(self['duration']),
-			"late":"%.1f" % float(self.attrib['t_late']),
-			"update":self.update_count
-			})
-		quickPlotData = pd.DataFrame(index=[self['id']], columns=['x','y','color','size','alpha','name', 'info'],
+                # plot_fields=['x','y','color','size','alpha','name','time of update','location','schedule','data']
+		quickPlotData = pd.DataFrame(index=[self['id']], columns=fields,
 			data=[[coords[0], coords[1], self._calc_color(), float(12), float(0.4),
-				self['name'], infoString]]
-			)
-		self.setPlotData(quickPlotData)
+				self['name'],
+                                nice_time(timestamp, military=False),
+                                _make_string({"approaching next stop":station_names[self['next_stop']]}),
+                                _make_string({"scheduled arrival":nice_time(self.attrib['sched_arrival'], military=False), "minutes behind schedule":"%.1f" % float(self.attrib['t_late'])}),
+                                _make_string({"elapsed time for this trip":"%.1f" % float(self['duration'])})
+                                             ]] )
+                self.setPlotData(quickPlotData)
 
         def _calc_trip_origin(self):
 		t_ref = get_TOD_reference(float(self.attrib['time_of_update']))
@@ -287,7 +289,7 @@ class trainObj(vizComponent):
                 return name_string
 
 class stopObj(vizComponent):
-	def __init__(self, stop_id, stopData):
+	def __init__(self, stop_id, stopData, fields):
 		vizComponent.__init__(self)
 		self.attrib['id'] = stop_id
 		self.attrib['lat'] = float(stopData['lat'])
@@ -295,13 +297,17 @@ class stopObj(vizComponent):
 		self.attrib['name'] = np.array(stopData['name'])
 		#self.attrib['grid'] = np.array(stopData['rel_grid'])
 		#self.setPlotData(pd.DataFrame(index=[self['id']], columns=['x','y','color','size'], data=[[float(self.attrib['grid'][0]), float(self.attrib['grid'][1]), 'blue', float(10)]]))
-		infoString = _make_string({
-			"lat" : float(self.attrib['lat']),
-			"lon" : float(self.attrib['lon'])
-			})
-		self.setPlotData(pd.DataFrame(index=[self['id']], columns=['x','y','color','size','alpha','name','info'],
-			data=[[float(self.attrib['lon']), float(self.attrib['lat']), BLUE, float(5), float(1.0), str(self['name']) + str(" Station"), infoString
-				]]))
+                # plot_fields=['x','y','color','size','alpha','name','time of update','location','schedule','data']
+		quickPlotData = pd.DataFrame(index=[self['id']], columns=fields,
+                               data=[[float(self.attrib['lon']), float(self.attrib['lat']),
+                                      BLUE, float(7), float(1.0),
+                                      str(self['name']) + str(" Station"),
+                                      nice_time(time.time(), military=False),
+                                      _make_string({"lat" : float(self.attrib['lat']), "lon" : float(self.attrib['lon'])}),
+                                      _make_string({"trains approaching":"not enabled"}),
+                                      _make_string({"stop data":"not enabled"})
+                                      ]] )
+                self.setPlotData(quickPlotData)
 
 class routeObj(vizComponent):
 	def __init__(self, route_id, origin_id, destination_id, stationLoc, travel_time=1.0, stats=NULL_STATS):
