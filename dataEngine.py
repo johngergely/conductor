@@ -108,7 +108,8 @@ class systemManager():
                                          newDF.loc[i,'stop'],
                                          newDF.loc[i,'arrive'],
 					 newDF.loc[i,'depart'])
-               
+                self._purgeStalled(newDF.loc[newDF.index[0],'timestamp'], 10.)
+
         def evolve(self, t_now, t_ref):
                 for train in self.activeTrains.values():
                         routeOrigin, routeDest = train.attrib['routeID']
@@ -150,13 +151,12 @@ class systemManager():
 			#print "new train",self.activeTrains[trip_id]['id'],prev_stop, next_stop
                         #print "active on route",self._getRoute((prev_stop, next_stop)).activeTrains.keys(),prev_stop,next_stop
 
-		require_route_update, dead_train, old_route_tuple, new_route_tuple = \
+		require_route_update, old_route_tuple, new_route_tuple = \
                         self.activeTrains[trip_id].update_trip(timestamp, next_stop, t_arrive)
 
                 if require_route_update:
                         self._getRoute(old_route_tuple).clearTrain(trip_id, timestamp)
-                        if not dead_train:
-                                self._getRoute(new_route_tuple).addTrain(trip_id, timestamp, t_arrive)
+                        self._getRoute(new_route_tuple).addTrain(trip_id, timestamp, t_arrive)
 
         def _getRoute(self, (origin, dest)):
             tag = origin + "_" + dest
@@ -173,6 +173,15 @@ class systemManager():
                 print "LOOKUP_PREV FAILED",next_stop,"RETURNING THE DESTINATION"
                 return next_stop
             return result['origin'].values[0]
+
+        def _purgeStalled(self, t_current, t_wait_mins):
+            for train_id in self.activeTrains.keys():
+                t_last_update = self.activeTrains[train_id].attrib['time_of_update']
+                if (t_current - t_last_update)/60. > t_wait_mins:
+                    routeID = self.activeTrains[train_id].attrib['routeID']
+                    print nice_time(t_current), "PURGING STALLED TRAIN",train_id, (t_current-t_last_update)/60.,routeID
+                    self._getRoute(routeID).clearTrain(train_id, t_current)
+                    self.activeTrains.pop(train_id)
 
 class plotDataObj():
 	def __init__(self):
@@ -250,17 +259,12 @@ class trainObj(vizComponent):
                         self.attrib['routeID'] = (self.attrib['prev_stop'], self.attrib['next_stop'])
                         self.attrib['isLate'] = False
 
-                        return True, False, old_route_tuple, self.attrib['routeID']
+                        return True, old_route_tuple, self.attrib['routeID']
                 else:
                         if time_of_update > t_arrive:
                                 self.attrib['isLate'] = True
 				self.attrib['t_late'] = (time_of_update - t_arrive)/60.
-                                ## if train is not making progress kill it
-                                if  time_of_update - self.attrib['last_stop_time'] > 30.*60:
-                                        t_stalled = time_of_update - self.attrib['last_stop_time']
-                                        print "PURGING STALLED TRAIN",self['id'],self['routeID'],t_stalled/60.
-                                        return True, True, self.attrib['routeID'], self.attrib['routeID']
-                        return False, False, self.attrib['routeID'], self.attrib['routeID']
+                        return False, self.attrib['routeID'], self.attrib['routeID']
 
         def update_position(self, timestamp, coords, isLate, fields):
 		self.update_count += 1
@@ -334,7 +338,7 @@ class routeObj(vizComponent):
                 self.x_coords = np.array((origin_lon, dest_lon))
                 self.y_coords = np.array((origin_lat, dest_lat))
                 #print "ROUTE",self['id'], self.x_coords, self.y_coords
-                self.activeTrains = {}
+                self.trainsOnRoute = {}
                 infoString = "route"
 		self.setPlotData(pd.DataFrame(index=[self['id']],
                     columns=['x','y','t_min','t_50pct','t_75pct','name','info'],
@@ -342,11 +346,11 @@ class routeObj(vizComponent):
                     ))
 
         def trainPosition(self, trip_id, timestamp, dir_shift=True):
-                t_start, t_arrive, isLate = self.activeTrains[trip_id]
+                t_start, t_arrive, isLate = self.trainsOnRoute[trip_id]
                 progress_fraction = max(0., float(timestamp - t_start)/(t_arrive - t_start))
                 if progress_fraction > 0.95:
                         progress_fraction = 0.98
-                        self.activeTrains[trip_id] = t_start, t_arrive, True
+                        self.trainsOnRoute[trip_id] = t_start, t_arrive, True
                         isLate = True
 		#print trip_id,timestamp,t_start,t_arrive,self.origin_coord, self.dest_coord,progress_fraction
 
@@ -371,10 +375,10 @@ class routeObj(vizComponent):
 			#print "Using historical median",self.stats['50%']
 			t_arrive = t_start + self.stats['50%']
 			isLate = True
-                self.activeTrains[trip_id] = (t_start, t_arrive, isLate)
+                self.trainsOnRoute[trip_id] = (t_start, t_arrive, isLate)
 
         def clearTrain(self, trip_id, timestamp):
-                self.activeTrains.pop(trip_id)
+                self.trainsOnRoute.pop(trip_id)
 	
 if __name__=="__main__":
         print "dataEngine::__main__"
