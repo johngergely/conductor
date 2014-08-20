@@ -150,12 +150,13 @@ class systemManager():
 			#print "new train",self.activeTrains[trip_id]['id'],prev_stop, next_stop
                         #print "active on route",self._getRoute((prev_stop, next_stop)).activeTrains.keys(),prev_stop,next_stop
 
-		require_route_update, old_route_tuple, new_route_tuple = \
+		require_route_update, dead_train, old_route_tuple, new_route_tuple = \
                         self.activeTrains[trip_id].update_trip(timestamp, next_stop, t_arrive)
 
                 if require_route_update:
                         self._getRoute(old_route_tuple).clearTrain(trip_id, timestamp)
-                        self._getRoute(new_route_tuple).addTrain(trip_id, timestamp, t_arrive)
+                        if not dead_train:
+                                self._getRoute(new_route_tuple).addTrain(trip_id, timestamp, t_arrive)
 
         def _getRoute(self, (origin, dest)):
             tag = origin + "_" + dest
@@ -225,7 +226,7 @@ class trainObj(vizComponent):
 		self.attrib['sched_arrival'] = 0.
 		self.attrib['trip_origin'] = self._calc_trip_origin()
 		self.attrib['active_trip'] = self.attrib['trip_origin'] < self.attrib['time_of_update']
-		self.attrib['last_stop_time'] = 0.
+		self.attrib['last_stop_time'] = timestamp
                 self.attrib['isLate'] = False
                 self.attrib['name'] = self._make_train_name()
 		self.attrib['t_late'] = 0.
@@ -249,12 +250,17 @@ class trainObj(vizComponent):
                         self.attrib['routeID'] = (self.attrib['prev_stop'], self.attrib['next_stop'])
                         self.attrib['isLate'] = False
 
-                        return True, old_route_tuple, self.attrib['routeID']
+                        return True, False, old_route_tuple, self.attrib['routeID']
                 else:
                         if time_of_update > t_arrive:
                                 self.attrib['isLate'] = True
 				self.attrib['t_late'] = (time_of_update - t_arrive)/60.
-                        return False, self.attrib['routeID'], self.attrib['routeID']
+                                ## if train is not making progress kill it
+                                if  time_of_update - self.attrib['last_stop_time'] > 30.*60:
+                                        t_stalled = time_of_update - self.attrib['last_stop_time']
+                                        print "PURGING STALLED TRAIN",self['id'],self['routeID'],t_stalled/60.
+                                        return True, True, self.attrib['routeID'], self.attrib['routeID']
+                        return False, False, self.attrib['routeID'], self.attrib['routeID']
 
         def update_position(self, timestamp, coords, isLate, fields):
 		self.update_count += 1
