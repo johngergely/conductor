@@ -177,10 +177,6 @@ class bokehPlotInterface():
 
 		self._first_plot = False
 
-                print "calling autoload_server"
-                EMBED_DATA = autoload_server(curplot(), cursession())
-                make_URL(SERVER_URL, EMBED_DATA)
-
 	def _animate_plot(self, data, lineData, fields, timestring):
 		for f in fields:
 			self.ds.data[f] = data[f]
@@ -196,6 +192,9 @@ class bokehPlotInterface():
 			self._init_plot(df, lineData, hoverFields, timestring)
 		else:
 			self._animate_plot(df, lineData, dynamicFields, timestring)
+
+                EMBED_DATA = autoload_server(curplot(), cursession())
+                make_URL(SERVER_URL, EMBED_DATA)
 
 if __name__=="__main__":
 	print "TESTING PLOT WITH DATA SET"

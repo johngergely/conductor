@@ -1,4 +1,5 @@
 import re
+import time
 
 def collect_strings():
     with open("bokeh.server.dat",'r') as f:
@@ -35,6 +36,9 @@ def write_template(embed_data):
 
 
 	    f.write("<p>Conductor is written in Python and makes use of the Bokeh plotting library. It is an open source project under active development. Here is the project on <a href=\"http://github.com/johngergely/conductor\">github</a>. You'll find the code repository, additional technical documentation, and in-process data analysis.</p>\n")
+
+	    t_string = str(time.ctime())
+            f.write("<p>This embed page was last generated: " + t_string + "</p>\n")
 
             f.write("</body>\n")
             f.write("</html>\n")
