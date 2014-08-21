@@ -38,7 +38,9 @@ class liveStreamReader(streamManager):
                                         float(stops[0].arrival.time),
                                         float(stops[0].departure.time)
                                 ]])
-        print count, "records", len(newDF)
+        print "READ",count, "records", len(newDF)
+        if len(newDF) == 0:
+            newDF = pd.DataFrame()
         newDF.columns = ['timestamp','trip_id','start_date','stop','arrive','depart']
         newDF.index = np.arange(len(newDF))
         return self.T0, newDF
