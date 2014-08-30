@@ -9,6 +9,7 @@ import numpy as np
 
 from dataEngine import unit_perp
 from createLink import make_URL
+from geography import  importShapefile, extract_silhouette
 
 SERVER_URL = """http://104.131.255.76:5006/"""
 
@@ -83,7 +84,7 @@ def _plotPatches(lineData):
         else:
             r0 =  np.array((xx[0], yy[0]))
             r1 =  np.array((xx[1], yy[1]))
-            w = 0.5 * t50/tmin * 0.02 * x_scale[0]
+            w = 0.5 * t50/tmin * 0.02 * abs(x_scale[0])
             x_set, y_set =  _make_polygon(r0, r1, 0.2, w)
 
             xs.append(x_set)
@@ -92,6 +93,24 @@ def _plotPatches(lineData):
             colors.append([GOLDENROD])
 
     return patches(xs, ys, fill_color=colors, fill_alpha=alphas, line_alpha=0.2, line_color=GOLDENROD)
+
+def _plotGeography():
+        mh_index = -3
+        bx_index = -1
+        bk_index = -1
+        shp_source = "data/nybb_14b_av/nybb.shp"
+
+        shapes = importShapefile(shp_source)
+
+        shapes_x_lists = []
+        shapes_y_lists = []
+
+        for shp_i,geo_i in [(1,mh_index), (2, bx_index), (3,bk_index)]:
+                print "SHAPEFILE SHAPE",shp_i,geo_i
+                xx,yy = extract_silhouette(shapes[shp_i], geo_i)
+                shapes_x_lists.append(xx)
+                shapes_y_lists.append(yy)
+        return multi_line(xs=shapes_x_lists, ys=shapes_y_lists, alpha=0.45, line_width=5, color=GRAY)
 
 class bokehPlotInterface():
 	def __init__(self, plot_mode="server"):
@@ -155,10 +174,13 @@ class bokehPlotInterface():
 
 		scatter(allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
                
+                _plotGeography()
                 _plotPatches(lineData)
                 _plotLineData(lineData)
 
-                #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
+                text([995864], [191626], text="Brooklyn", text_baseline="middle", text_align="left",   text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
+                text([996549], [226269], text="Manhattan", text_baseline="middle", text_align="right", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
+                text([1020884], [237246], text="The Bronx", text_baseline="middle", text_align="left", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
 
                 # get hold of this to display hover data
                 hover = [tools for tools in curplot().tools if isinstance(tools, HoverTool)][0]
