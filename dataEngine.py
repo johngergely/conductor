@@ -9,6 +9,16 @@ from systemData import stationLoc, routeData
 from aggregator import aggregator, NULL_STATS
 from visualize import file_timestamp
 
+from pyproj import Proj
+# EPSG Projection 2263 - NAD83 / New York Long Island (ftUS)
+# http://spatialreference.org/ref/epsg/2263/
+EPSG_PROJECTION_CODE = "2263"
+FEET_PER_METER = 3.2808333333273816
+_proj = Proj(init="epsg:"+EPSG_PROJECTION_CODE)
+def _map_projection(lon, lat):
+    x,y = _proj(lon, lat)
+    return FEET_PER_METER*x, FEET_PER_METER*y
+
 ONE_BY_SIXTY = 1./60
 line_mult = 3
 
@@ -88,6 +98,8 @@ class systemManager():
 
 	def plot_boundaries(self):
 		xmin, xmax, ymin, ymax = self.stationLoc.get_area()
+                xmin, ymin = _map_projection(xmin, ymin)
+                xmax, ymax = _map_projection(xmax, ymax)
 		return xmin, xmax, ymin, ymax
 
         def selectData(self, newDF):
@@ -302,8 +314,9 @@ class stopObj(vizComponent):
 	def __init__(self, stop_id, stopData, fields):
 		vizComponent.__init__(self)
 		self.attrib['id'] = stop_id
-		self.attrib['lat'] = float(stopData['lat'])
-		self.attrib['lon'] = float(stopData['lon'])
+                proj_x, proj_y = _map_projection(float(stopData['lon']), float(stopData['lat']))
+		self.attrib['lon'] = proj_x
+		self.attrib['lat'] = proj_y
 		self.attrib['name'] = np.array(stopData['name'])
 		#self.attrib['grid'] = np.array(stopData['rel_grid'])
 		#self.setPlotData(pd.DataFrame(index=[self['id']], columns=['x','y','color','size'], data=[[float(self.attrib['grid'][0]), float(self.attrib['grid'][1]), 'blue', float(10)]]))
@@ -332,11 +345,13 @@ class routeObj(vizComponent):
                 #self.dest_coord = np.array(self.stationLoc[self.attrib['dest_stop'], 'rel_grid'])
                 origin_lon, origin_lat = stationLoc[self.attrib['origin_stop'],'lon'], stationLoc[self.attrib['origin_stop'], 'lat']
                 dest_lon, dest_lat = stationLoc[self.attrib['dest_stop'],'lon'], stationLoc[self.attrib['dest_stop'], 'lat']
-                self.origin_coord = np.array((origin_lon, origin_lat))
-                self.dest_coord = np.array((dest_lon, dest_lat))
+                origin_x, origin_y = _map_projection(origin_lon, origin_lat)
+                dest_x, dest_y = _map_projection(dest_lon, dest_lat)
+                self.origin_coord = np.array((origin_x, origin_y))
+                self.dest_coord = np.array((dest_x, dest_y))
                 #print "ROUTE",self['id'], self.origin_coord, self.dest_coord
-                self.x_coords = np.array((origin_lon, dest_lon))
-                self.y_coords = np.array((origin_lat, dest_lat))
+                self.x_coords = np.array((origin_x, dest_x))
+                self.y_coords = np.array((origin_y, dest_y))
                 #print "ROUTE",self['id'], self.x_coords, self.y_coords
                 self.trainsOnRoute = {}
                 infoString = "route"
