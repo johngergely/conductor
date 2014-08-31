@@ -94,7 +94,7 @@ def _plotPatches(lineData):
 
     return patches(xs, ys, fill_color=colors, fill_alpha=alphas, line_alpha=0.2, line_color=GOLDENROD)
 
-def _plotGeography():
+def _plotGeography(downsample_interval=1):
         mh_index = -3
         bx_index = -1
         bk_index = -1
@@ -108,8 +108,11 @@ def _plotGeography():
         for shp_i,geo_i in [(1,mh_index), (2, bx_index), (3,bk_index)]:
                 print "SHAPEFILE SHAPE",shp_i,geo_i
                 xx,yy = extract_silhouette(shapes[shp_i], geo_i)
-                shapes_x_lists.append(xx)
-                shapes_y_lists.append(yy)
+                xx_resampled = [xx[i] for i in range(0,len(xx),downsample_interval)]
+                yy_resampled = [yy[i] for i in range(0,len(yy),downsample_interval)]
+                print "resampled shapefiles to length", len(xx_resampled), len(yy_resampled)
+                shapes_x_lists.append(xx_resampled)
+                shapes_y_lists.append(yy_resampled)
         return multi_line(xs=shapes_x_lists, ys=shapes_y_lists, alpha=0.45, line_width=5, color=GRAY)
 
 class bokehPlotInterface():
@@ -174,7 +177,7 @@ class bokehPlotInterface():
 
 		scatter(allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
                
-                _plotGeography()
+                _plotGeography(downsample_interval=33)
                 _plotPatches(lineData)
                 _plotLineData(lineData)
 
