@@ -21,6 +21,7 @@ def _map_projection(lon, lat):
 
 ONE_BY_SIXTY = 1./60
 line_mult = 3
+Z_UP = np.array((0., 0., 1.))
 
 # color palette
 BRICK = "#800000"
@@ -30,19 +31,13 @@ LT_YELLOW = "#FFE066"
 LATE_MAGENTA = "#FF0066"
 GREEN = "#009933"
 
-def unit_perp(U, root_sign=1.):
-    ux = U[0]
-    uy = U[1]
-    if uy==0.:
-            print "SAVING PERP CALC",uy
-            uy = ux*1e-7
-    xi = ux*ux/(uy*uy)
-    vx = math.sqrt(xi/(1.+xi))
-    if root_sign*vx < ux:
-	    vx = -1.*vx
-    vy = -ux*vx/uy
-    M = math.sqrt(vx*vx + vy*vy)
-    return np.array((vx/M, vy/M))
+def unit_perp(U, handedness=1.):
+    U_mag = np.sqrt(np.dot(U,U))
+    if U_mag == 0.:
+       return np.array((0., 0.))
+    U_xyz = np.array((U[0], U[1], 0.))
+    V_xyz = np.cross(U_xyz, Z_UP)/U_mag
+    return np.array((V_xyz[0], V_xyz[1]))
 
 def _null_tag_for(trip_id):
     ll = trip_id.split("_")[1][0]
@@ -380,7 +375,7 @@ class routeObj(vizComponent):
                         sign = -1.
 		    V = unit_perp(U, sign)
 		    #print "unit vector",V,np.dot(U,V),U
-		updateCoord = self.origin_coord + progress_fraction*U + 0.0015*V
+		updateCoord = self.origin_coord + progress_fraction*U + 200.*V
                 return updateCoord, isLate
 
         def addTrain(self, trip_id, t_start, t_arrive):
