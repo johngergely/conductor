@@ -38,7 +38,10 @@ class plotManager():
 	    if self.T - T_last_update > self.updateDataInterval:
 		T_last_update = self.T
             	t_update, updateDF = self.streamMgr.read(self.T, self.T+self.updateDataInterval)
-            	self.mgr.streamUpdate(updateDF)
+                if len(updateDF)>0:
+            	        self.mgr.streamUpdate(updateDF)
+                else:
+                        print "Skipped processing DF of length ZERO"
 	    	t_lag = time.time() - t_update
             	print t_update, self.T, "[",self.T,self.Tend,"] update DF",t_lag
 
