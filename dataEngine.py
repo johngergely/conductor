@@ -257,21 +257,23 @@ class trainObj(vizComponent):
 		self.attrib['sched_arrival'] = t_arrive
 		self.attrib['duration'] = (time_of_update - self.attrib['trip_origin'])/60.
 
+                newStop = False
+                old_route_tuple = self.attrib['routeID']
+
                 ## passed a stop; update params for next stop
                 if next_stop != self.attrib['next_stop']:
+                        newStop = True
                         self.attrib['last_stop_time'] = time_of_update
-                        old_route_tuple = self.attrib['routeID']
                         self.attrib['prev_stop'] = self.attrib['next_stop']
 		        self.attrib['next_stop'] = next_stop
                         self.attrib['routeID'] = (self.attrib['prev_stop'], self.attrib['next_stop'])
                         self.attrib['isLate'] = False
 
-                        return True, old_route_tuple, self.attrib['routeID']
-                else:
-                        if time_of_update > t_arrive:
-                                self.attrib['isLate'] = True
-				self.attrib['t_late'] = (time_of_update - t_arrive)/60.
-                        return False, self.attrib['routeID'], self.attrib['routeID']
+                if time_of_update > t_arrive:
+                        self.attrib['isLate'] = True
+                        self.attrib['t_late'] = (time_of_update - t_arrive)/60.
+
+                return newStop, old_route_tuple, self.attrib['routeID']
 
         def update_position(self, timestamp, coords, isLate, fields):
 		self.update_count += 1
@@ -351,8 +353,8 @@ class routeObj(vizComponent):
                 self.trainsOnRoute = {}
                 infoString = "route"
 		self.setPlotData(pd.DataFrame(index=[self['id']],
-                    columns=['x','y','t_min','t_50pct','t_75pct','name','info'],
-                    data=[[self.x_coords, self.y_coords, str(self.stats['min']), str(self.stats['50%']), str(self.stats['75%']),  str(self['id']), infoString]]
+                    columns=['x','y','t_min','t_50pct','t_75pct','name','info','hover'],
+                    data=[[self.x_coords, self.y_coords, str(self.stats['min']), str(self.stats['50%']), str(self.stats['75%']),  str(self['id']), infoString, False]]
                     ))
 
         def trainPosition(self, trip_id, timestamp, dir_shift=True):
@@ -375,7 +377,7 @@ class routeObj(vizComponent):
                         sign = -1.
 		    V = unit_perp(U, sign)
 		    #print "unit vector",V,np.dot(U,V),U
-		updateCoord = self.origin_coord + progress_fraction*U + 200.*V
+		updateCoord = self.origin_coord + progress_fraction*U + 350.*V
                 return updateCoord, isLate
 
         def addTrain(self, trip_id, t_start, t_arrive):
