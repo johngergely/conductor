@@ -62,7 +62,6 @@ def _make_string(data, S="", indent=""):
         liveEntry = True
         if len(vals) == 0:
             liveEntry = False
-            print "ignoring empty entry w key",key
         else:
             typeFlag = type(vals[0])
             if typeFlag == tuple:
