@@ -40,10 +40,10 @@ class liveStreamReader(streamManager):
                                 ]])
         print "READ",count, "records", len(newDF)
         if len(newDF) == 0:
-            newDF = pd.DataFrame()
             print "returning ZERO length dataframe from stream read"
-        newDF.columns = ['timestamp','trip_id','start_date','stop','arrive','depart']
-        newDF.index = np.arange(len(newDF))
+        else:
+            newDF.columns = ['timestamp','trip_id','start_date','stop','arrive','depart']
+            newDF.index = np.arange(len(newDF))
         return self.T0, newDF
 
 class streamSimulator(streamManager):
