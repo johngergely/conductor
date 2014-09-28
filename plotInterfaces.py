@@ -1,6 +1,6 @@
 import pandas as pd
 from bokeh.plotting import *
-from bokeh.objects import Range1d, HoverTool
+from bokeh.objects import Range1d, HoverTool, Glyph
 from bokeh.embed import autoload_server
 from collections import OrderedDict
 
@@ -11,7 +11,8 @@ from dataEngine import unit_perp
 from createLink import make_URL
 from geography import  importShapefile, extract_silhouette
 
-SERVER_URL = """http://104.131.255.76:5006/"""
+#SERVER_URL = """http://104.131.255.76:5006/"""
+SERVER_URL = """http://127.0.0.1:5006/"""
 
 # color palette
 BRICK = "#800000"
@@ -106,11 +107,11 @@ def _plotGeography(downsample_interval=1):
         shapes_y_lists = []
 
         for shp_i,geo_i in [(1,mh_index), (2, bx_index), (3,bk_index)]:
-                print "SHAPEFILE SHAPE",shp_i,geo_i
+                #print "SHAPEFILE SHAPE",shp_i,geo_i
                 xx,yy = extract_silhouette(shapes[shp_i], geo_i)
                 xx_resampled = [xx[i] for i in range(0,len(xx),downsample_interval)]
                 yy_resampled = [yy[i] for i in range(0,len(yy),downsample_interval)]
-                print "resampled shapefiles to length", len(xx_resampled), len(yy_resampled)
+                print "resampled shapefiles have length", len(xx_resampled), len(yy_resampled)
                 shapes_x_lists.append(xx_resampled)
                 shapes_y_lists.append(yy_resampled)
         return multi_line(xs=shapes_x_lists, ys=shapes_y_lists, alpha=0.45, line_width=5, color=GRAY)
@@ -138,9 +139,9 @@ class bokehPlotInterface():
 
         def _init_hover(self, data, fields):
                 if self._hover_enabled:
-                        self.TOOLS = ['pan', 'box_zoom', 'resize', 'reset', 'hover']
-                else:
-                        self.TOOLS = ['pan', 'box_zoom', 'resize', 'reset']
+                        self.TOOLS = ['pan', 'box_zoom', 'wheel_zoom', 'resize', 'reset', 'hover']
+                else:                                                                    
+                        self.TOOLS = ['pan', 'box_zoom', 'wheel_zoom', 'resize', 'reset'] 
 
 		#choosefields = {'train':['name','approaching','duration','late'], 'station':['name','x','y']}
 		columnDict = {}
@@ -149,6 +150,7 @@ class bokehPlotInterface():
 			columnDict[f] = data[f].values
 			#hoverlist.append(("\"" + f + "\"" , "\"@" + f + "\""))
 			hoverlist.append((f, "@" + f))
+                print "hoverlist",hoverlist
 
 
                 self.source = ColumnDataSource(data=columnDict)
@@ -177,6 +179,13 @@ class bokehPlotInterface():
 
 		scatter(allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
                
+                # get hold of this to display hover data
+                #hover = [tools for tools in curplot().tools if isinstance(tools, HoverTool)][0] ## outdated for bokeh version < 0.6
+                self.hover = curplot().select(dict(type=HoverTool)) # bokeh version >= 0.6
+		#self.hover.tooltips = self.hoverDict
+                self.hover.useString = True
+                #self.hover.stringData = list(allData['formatted_string'])
+
                 _plotGeography(downsample_interval=33)
                 _plotPatches(lineData)
                 _plotLineData(lineData)
@@ -184,10 +193,6 @@ class bokehPlotInterface():
                 text([995864], [191626], text="Brooklyn", text_baseline="middle", text_align="left",   text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
                 text([996549], [226269], text="Manhattan", text_baseline="middle", text_align="right", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
                 text([1020884], [237246], text="The Bronx", text_baseline="middle", text_align="left", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
-
-                # get hold of this to display hover data
-                hover = [tools for tools in curplot().tools if isinstance(tools, HoverTool)][0]
-		hover.tooltips = self.hoverDict
 
                 self.curplot = curplot
 
@@ -199,13 +204,11 @@ class bokehPlotInterface():
 		self.renderer = [r for r in curplot().renderers if isinstance(r, Glyph)][0]
 		self.ds = self.renderer.data_source
 
-
 		self._first_plot = False
 
 	def _animate_plot(self, data, lineData, fields, timestring):
 		for f in fields:
 			self.ds.data[f] = data[f]
-			#print data[f].values
 
                 #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
 
@@ -223,4 +226,41 @@ class bokehPlotInterface():
 
 if __name__=="__main__":
 	print "TESTING PLOT WITH DATA SET"
-	#static = pd.DataFrame(index=[1,2,3], [[1,1],[2,2],[3,3]])
+        output_server("whatever.html", load_from_config=False)#test_plot_functionality.html")
+        #output_file("whatever.html")#test_plot_functionality.html")
+        #cursession().load_from_config = False
+        TOOLS = ['pan', 'box_zoom', 'wheel_zoom', 'resize', 'reset', 'hover']
+        data = pd.DataFrame(columns=['x','y','name','type','records','iter','whatyouknow'], 
+                            data=[[1.,1.,'a','character',"vinyl",0,None],
+                                  [2.,1.,'fox','animal',"yellow<br>blue<br>gray",0,'octopus']])
+        fields = ['name','type','iter','records','whatyouknow']
+        columnDict = {}
+        hoverlist = []
+        for f in fields:
+                columnDict[f] = data.get(f)
+                hoverlist.append((f, "@" + f))
+        print "test hoverlist",hoverlist
+        source = ColumnDataSource(data=columnDict)
+        hoverDict = OrderedDict(hoverlist)
+        print "HOVER FIELDS"
+        print hoverDict
+        figure()
+        hold()
+
+        scatter(data['x'], y=data['y'], size=10, source=source, tools=TOOLS)
+        circle(x=[0.], y=[0.], size=20, color='red', tools=TOOLS)
+
+        # get hold of this to display hover data
+        hover = curplot().select(dict(type=HoverTool)) # bokeh version >= 0.6
+        hover.tooltips = hoverDict
+        hover.useString = True
+        hover.stringData = ["sending as a string<br> even w a new line.", "second guy<br>&nbsp&nbspindent"]
+        #hover.stringStyle = {"color":"white", "backgroundColor":"rgba(0,0,255,0.4)"}
+
+        show()
+
+        # get hold of this to refresh data for animation
+        #renderer = [r for r in curplot().renderers if isinstance(r, Glyph)][0]
+        #ds = renderer.data_source
+        #for f in fields:
+        #        ds.data[f] = data[f]
