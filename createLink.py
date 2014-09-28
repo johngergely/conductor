@@ -20,7 +20,7 @@ def write_template(embed_data):
             f.write("<html>\n")
 	    f.write("<title>CONDUCTOR - Real-time NYC Subway Visualization and Analytics</title>\n")
             f.write("<body style=\"font-family:helvetica;color:#4C4E52\">\n")
-            
+
             f.write(embed_data)
 
             f.write("<br>")
