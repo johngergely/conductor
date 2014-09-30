@@ -428,8 +428,10 @@ class stopObj(vizComponent):
             for intervalSet in self.interval_list:
                 ll,dd = intervalSet.keys()[0]
                 freq = intervalSet[(ll,dd)].get(hour)
+                if not freq:
+                    freq = 0.
                 if self.lastStop.get((ll,dd)):
-                    t_waiting = (timestamp - self.lastStop[(ll,dd)])/60.
+                    t_waiting = float((timestamp - self.lastStop[(ll,dd)])/60.)
                     direction_tag = {"N":"Uptown","S":"Downtown"}
                     strings.append((str(ll) + " " + direction_tag[dd], "Frequency: " + str("%.0f" % freq) + " mins; Time since last: " + str("%.0f" % t_waiting) + " mins"))
             return strings
