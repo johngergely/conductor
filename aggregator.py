@@ -83,7 +83,7 @@ class intervalAggregator():
 
         def calcSeries(self,station):
                 means = {}
-                for hmin in range(0,23):
+                for hmin in range(0,24):
                         hmax = hmin+1
                         means[hmin] = self.calcInterval(hmin, hmax, station)
                 return means
