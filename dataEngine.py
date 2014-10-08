@@ -85,6 +85,18 @@ def _make_string(data, S="", indent=""):
             S = S + addS
     return S
 
+# take a list of lists to create row and column entries
+# complains if column numbers are inconsistent
+def _make_table(data):
+    S = "<table>"# <style>table{border-spacing:5px}</style>"
+    for row in data:
+        S = S + "<tr>"
+        for entry in row:
+            S = S + "<td>" + entry + "&nbsp&nbsp</td>"
+        S = S + "</tr>"
+    S = S + "</table>"
+    return S
+
 class systemManager():
 	def __init__(self, setLines, setDirections):
                 self.selectLines = setLines
@@ -98,7 +110,7 @@ class systemManager():
                 # for stops we need only use 'N' objects
                 stopList = []
                 stopIntervals = {}
-                for ll in ['4','5','6']:
+                for ll in self.selectLines:
                     iAgg_N = intervalAggregator(ll, "N")
                     iAgg_S = intervalAggregator(ll, "S")
                     for ii in self.routeData.get(ll, "N")['id']:
@@ -107,8 +119,10 @@ class systemManager():
                         if not stopIntervals.get(ii):
                             stopIntervals[ii] = []
                         ii_S = ii[:-1] + "S"
-                        stopIntervals[ii] = stopIntervals[ii] + [{(ll,"N"):iAgg_N.calcSeries(ii)}]
-                        stopIntervals[ii] = stopIntervals[ii] + [{(ll,"S"):iAgg_S.calcSeries(ii_S)}]
+                        stopIntervals[ii] = stopIntervals[ii] + [{(ll,"N"):iAgg_N.fetchSeries(ii)}]
+                        stopIntervals[ii] = stopIntervals[ii] + [{(ll,"S"):iAgg_S.fetchSeries(ii_S)}]
+                    iAgg_N.storeData()
+                    iAgg_S.storeData()
                 stopList = set(stopList)
                 self.stopSeries = pd.Series(index=stopList)
                 for si in stopList:
@@ -117,8 +131,8 @@ class systemManager():
                 self._activeRoutes = {}
 		#self._routestats = {}
                 self._allRoutes = {}
-                for ll in ['4','5','6']:
-                    for dd in ['N','S']:
+                for ll in self.selectLines:
+                    for dd in self.selectDirections:
                         routeSlice = self.routeData.get(ll, dd)
 			agg = aggregator(ll,dd)
 			#agg.select_range(--criteria--)
@@ -224,7 +238,7 @@ class systemManager():
         def _getRoute(self, (origin, dest)):
             tag = origin + "_" + dest
             if not self._allRoutes.get(tag):
-	        print "_getRoute constructor",origin,dest
+	        print "getRoute invoked route constructor between stations",origin,dest
                 self._allRoutes[tag] = routeObj(tag, origin, dest, self.stationLoc)
             #return self._activeRoutes[tag]
             return self._allRoutes[tag]
@@ -242,7 +256,7 @@ class systemManager():
                 t_last_update = self.activeTrains[train_id].attrib['time_of_update']
                 if (t_current - t_last_update)/60. > t_wait_mins:
                     routeID = self.activeTrains[train_id].attrib['routeID']
-                    print nice_time(t_current), "PURGING STALLED TRAIN",train_id, (t_current-t_last_update)/60.,routeID
+                    print nice_time(t_current), "Purging stalled train",train_id, "after", (t_current-t_last_update)/60.,"mins inactive on route",routeID
                     self._getRoute(routeID).clearTrain(train_id, t_current)
                     self.activeTrains.pop(train_id)
 
@@ -381,6 +395,8 @@ class stopObj(vizComponent):
 		self.attrib['name'] = np.array(stopData['name'])
                 self.routes = {}
                 self.lastStop = {}
+                self._numStored = 5
+                self.currentFreq = {}
                 self.interval_list = interval_list
 		#self.attrib['grid'] = np.array(stopData['rel_grid'])
 		#self.setPlotData(pd.DataFrame(index=[self['id']], columns=['x','y','color','size'], data=[[float(self.attrib['grid'][0]), float(self.attrib['grid'][1]), 'blue', float(10)]]))
@@ -388,12 +404,19 @@ class stopObj(vizComponent):
 
         def associateRoute(self, ll, dd, routeDict):
             self.routes[(ll,dd)] = routeDict
-            self.lastStop[(ll,dd)] = time.time()
+            self.lastStop[(ll,dd)] = [time.time()]
 
         def updateRecord(self, trip_id, timestamp):
             ll = trip_id.split("_")[1][0]
             dd = trip_id.split(".")[-1][0]
-            self.lastStop[(ll,dd)] = timestamp
+            if not self.lastStop.get((ll,dd)):
+                print self['id'],trip_id,"encountered unassociated route",ll,dd
+                self.lastStop[(ll,dd)] = [timestamp]
+            self.lastStop[(ll,dd)].append(timestamp)
+            if len(self.lastStop[(ll,dd)]) > self._numStored:
+                self.lastStop[(ll,dd)].pop(0)
+            splits = [t_2 - t_1 for t_2,t_1 in zip(self.lastStop[(ll,dd)][1:], self.lastStop[(ll,dd)][:-1])]
+            self.currentFreq[(ll,dd)] = sum(splits)/(60.*len(splits))
 
         def updateProgress(self, timestamp, fields):
 		stopPlotData = pd.DataFrame(
@@ -407,7 +430,8 @@ class stopObj(vizComponent):
                            _make_string([("Station", [str(self['name'])]),
                                          ("Time", [nice_time(time.time(), military=False)]),
                                          ("Trains approaching", self._listApproaching()),
-                                         ("Stop Stats (typical performance for this time of day)", self._listStopData(timestamp))])]])
+                                         ("Stop Stats (typical performance for this time of day)", [])]) +\
+                           _make_table(self._listStopData(timestamp))]])
                           #self['id']+ " test string<br> line two"]])
                 #print "formatted string",stopPlotData['formatted_string'].values
                 self.setPlotData(stopPlotData)
@@ -416,27 +440,30 @@ class stopObj(vizComponent):
             strings = []
             for (ll,dd) in self.routes.keys():
                 trainsDict = self.routes[(ll,dd)]
-                listTrains = ";".join([nice_time(t[1], military=False) for t in trainsDict.values()])
+                listTrains = "; ".join([nice_time(t[1], military=False) for t in trainsDict.values()])
                 direction_tag = {"N":"Uptown","S":"Downtown"}
                 if len(listTrains) > 0:
                     strings.append((str(ll) + " " + direction_tag[dd] + " due", listTrains))
             return strings
 
+        def _formatString(self, x_float):
+            try:
+                return str("%.0f" % float(x_float)) + " mins"
+            except (ValueError, TypeError):
+                return "not available"
+
         def _listStopData(self, timestamp):
-            strings = []
+            strings = [["Stop Stats"],["","historical","current",""],["route","frequency","frequency","time since last"]]
             hour = time.localtime(time.time())[3]
             for intervalSet in self.interval_list:
                 ll,dd = intervalSet.keys()[0]
                 freq = intervalSet[(ll,dd)].get(hour)
-                if not freq:
-                    freq = 0.
                 if self.lastStop.get((ll,dd)):
-                    t_waiting = float((timestamp - self.lastStop[(ll,dd)])/60.)
+                    if len(self.lastStop[(ll,dd)]) > 0:
+                        t_waiting = float((timestamp - self.lastStop[(ll,dd)][-1])/60.)
                     direction_tag = {"N":"Uptown","S":"Downtown"}
-                    strings.append((str(ll) + " " + direction_tag[dd], "Frequency: " + str("%.0f" % freq) + " mins; Time since last: " + str("%.0f" % t_waiting) + " mins"))
+                    strings.append([str(ll) + " " + direction_tag[dd], self._formatString(freq), self._formatString(self.currentFreq.get((ll,dd))), self._formatString(t_waiting)])
             return strings
-
-
 
 class routeObj(vizComponent):
 	def __init__(self, route_id, origin_id, destination_id, stationLoc, travel_time=1.0, stats=NULL_STATS):
