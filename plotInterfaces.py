@@ -85,7 +85,7 @@ def _plotPatches(lineData):
         else:
             r0 =  np.array((xx[0], yy[0]))
             r1 =  np.array((xx[1], yy[1]))
-            w = 0.5 * t50/tmin * 0.02 * abs(x_scale[0])
+            w = 0.5 * t50/tmin * 0.005 * abs(x_scale[0])
             x_set, y_set =  _make_polygon(r0, r1, 0.2, w)
 
             xs.append(x_set)
@@ -226,7 +226,8 @@ class bokehPlotInterface():
 
 if __name__=="__main__":
 	print "TESTING PLOT WITH DATA SET"
-        output_server("whatever.html", load_from_config=False)#test_plot_functionality.html")
+        #output_server("whatever.html", load_from_config=False)#test_plot_functionality.html")
+        output_server("whatever.html")#test_plot_functionality.html")
         #output_file("whatever.html")#test_plot_functionality.html")
         #cursession().load_from_config = False
         TOOLS = ['pan', 'box_zoom', 'wheel_zoom', 'resize', 'reset', 'hover']

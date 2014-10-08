@@ -6,6 +6,8 @@ from dataEngine import systemManager
 from streamManagers import streamSimulator, liveStreamReader
 from plotInterfaces import bokehPlotInterface
 
+from collect import nice_time
+
 class plotManager():
     def __init__(self, systemManager, streamManager, plotDevice):
 
@@ -43,7 +45,7 @@ class plotManager():
                 else:
                         print "Skipped processing DF of length ZERO"
 	    	t_lag = time.time() - t_update
-            	print t_update, self.T, "[",self.T,self.Tend,"] update DF",t_lag
+                print nice_time(t_update), nice_time(self.T), "lag between current wall-clock time and real-time feed update:","%.1f" % t_lag, "seconds"
 
 	    if not initPlot:
 	        self.plotMgr.init_area(self.mgr.plot_boundaries())
@@ -61,7 +63,7 @@ class plotManager():
             self.T = time.time()#t_plot + self.refreshPlotInterval
 
 if __name__ == "__main__":
-    mgr = systemManager(setLines=['4','5','6'], setDirections=['N','S'])
+    mgr = systemManager(setLines=['1','2','3','4','5','6'], setDirections=['N','S'])
     liveStream = liveStreamReader()      
     plotDevice= bokehPlotInterface()
 

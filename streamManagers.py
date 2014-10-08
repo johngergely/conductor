@@ -20,7 +20,6 @@ class liveStreamReader(streamManager):
         while not nyct_feed:
             attempts += 1
             nyct_feed = readMTADataStream()
-        print "liveStreamReader ==> (read from live stream",attempts,")",
         timestamp = nyct_feed.header.timestamp
         self.T0 = timestamp
         count = 0
@@ -38,9 +37,9 @@ class liveStreamReader(streamManager):
                                         float(stops[0].arrival.time),
                                         float(stops[0].departure.time)
                                 ]])
-        print "READ",count, "records", len(newDF)
+        print "liveStreamReader ==> Read", len(newDF), "records after",attempts,"attempts."
         if len(newDF) == 0:
-            print "returning ZERO length dataframe from stream read"
+            print "returning length ZERO dataframe from stream read"
         else:
             newDF.columns = ['timestamp','trip_id','start_date','stop','arrive','depart']
             newDF.index = np.arange(len(newDF))
