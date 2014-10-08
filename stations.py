@@ -7,6 +7,38 @@ S = pd.read_csv("stops.txt")
 station_names = dict(zip(S['stop_id'],S['stop_name']))
 station_codes = dict(zip(S['stop_name'],S['stop_id']))
 
+code_order_1_S = ['1_NULL_STOP_S', '101S', '103S', '104S', '106S',
+                  '107S', '108S', '109S', '110S', '111S', '112S',
+                  '113S', '114S', '115S', '116S', '117S', '118S',
+                  '119S', '120S', '121S', '122S', '123S', '124S',
+                  '125S', '126S', '127S', '128S', '129S', '130S',
+                  '131S', '132S', '133S', '134S', '135S', '136S', 
+                  '137S', '138S', '139S', '140S', '142S', '1_FINAL_STOP_S']
+
+code_order_1_N = [s[:-1]+'N' for s in reversed(code_order_1_S)]
+
+code_order_2_S = ['2_NULL_STOP_S', '201S', '204S', '205S', '206S', 
+                  '207S', '208S', '209S', '210S', '211S', '212S',
+                  '213S', '214S', '215S', '216S', '217S', '218S',
+                  '219S', '220S', '221S', '222S', '224S', '225S',
+                  '226S', '227S', '120S', '123S', '127S',
+                  '128S', '132S', '137S', '228S', '229S', '230S',
+                  '231S', '232S', '233S', '234S', '235S', '236S',
+                  '237S', '238S', '239S', '241S', '242S', '243S',
+                  '244S', '245S', '246S', '2_FINAL_STOP_S']
+
+code_order_2_N = [s[:-1]+'N' for s in reversed(code_order_2_S)]
+
+code_order_3_S = ['3_NULL_STOP_S', '301S', '302S', '224S', '225S',
+                  '226S', '227S', '120S', '123S', '127S',
+                  '128S', '132S', '137S', '228S', '229S', '230S',
+                  '231S', '232S', '233S', '234S', '235S', '236S',
+                  '237S', '238S', '239S', '248S', '249S', '250S',
+                  '251S', '252S', '253S', '254S', '255S', '256S',
+                  '257S', '3_FINAL_STOP_S']
+
+code_order_3_N = [s[:-1]+'N' for s in reversed(code_order_3_S)]
+
 code_order_4_N = ['250N','239N','235N', '234N','423N',
 		'420N', '419N', '418N','640N',
 		'635N','631N','629N','626N','621N',
@@ -42,7 +74,7 @@ code_order_dict = {"4_N" : code_order_4_N,
 		}
 
 directions = ['N','S']
-lines = ['4','5','6']
+lines = ['1','2','3','4','5','6']
 
 def get_station_map(direction, line):
 	if direction not in directions:
