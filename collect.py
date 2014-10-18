@@ -48,6 +48,8 @@ def TOD_value(t,t_ref):
     return t - t_ref
 
 def nice_time(t, military=True):
+    if np.isnan(t):
+            return "nan"
     day, mon, day, timestr, yr = time.ctime(t).split()
     hh, mm, ss = timestr.split(":")
     hh = int(hh)
