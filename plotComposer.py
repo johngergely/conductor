@@ -37,6 +37,10 @@ class plotManager():
 	initPlot = False
 
         while self.T < self.Tend:
+	    if not initPlot:
+	        self.plotMgr.init_area(self.mgr.plot_boundaries())
+		initPlot = True
+
 	    if self.T - T_last_update > self.updateDataInterval:
 		T_last_update = self.T
             	t_update, updateDF = self.streamMgr.read(self.T, self.T+self.updateDataInterval)
@@ -46,10 +50,6 @@ class plotManager():
                         print "Skipped processing DF of length ZERO"
 	    	t_lag = time.time() - t_update
                 print nice_time(t_update), nice_time(self.T), "lag between current wall-clock time and real-time feed update:","%.1f" % t_lag, "seconds"
-
-	    if not initPlot:
-	        self.plotMgr.init_area(self.mgr.plot_boundaries())
-		initPlot = True
 
             self.T = time.time()
             if self.T - T_last_plot > self.refreshPlotInterval:
