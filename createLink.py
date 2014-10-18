@@ -15,15 +15,45 @@ def make_URL(SERVER_URL, embed_data):
     #URL = SERVER_URL + "bokeh/doc/" + docid + "/" + id_string
     write_template(embed_data)
 
+def make_embed_script(embed_data):
+    add_escapes = re.sub(r"\"", "\\\"", embed_data)
+    formatted = ""
+    for segment in add_escapes.split("\n"):
+        formatted = formatted + segment + " "
+    #print "embed data",embed_data
+    #print "with escapes",add_escapes
+    #print "concatenated",formatted
+    with open("embed_bokeh_plot.js",'w') as f:
+        f.write("document.write(\"" + formatted + "\")")
+
+PLOT_PX = 600
+OFFSET = int(0.5*PLOT_PX)
+TOP_HEIGHT = 113
+LEFT_WIDTH = 239
+LEFT_OFFSET = LEFT_WIDTH + OFFSET
+BOTTOM_OFFSET = TOP_HEIGHT + PLOT_PX + 50 #50 accounts for bokeh plot toolbar
+BOTTOM_HEIGHT = 37
+TOTAL_HEIGHT = PLOT_PX + TOP_HEIGHT + BOTTOM_OFFSET + BOTTOM_HEIGHT
+BUTTON_WIDTH = 600
+
 def write_template(embed_data):
     with open("index.html",'w') as f:
             f.write("<html>\n")
 	    f.write("<title>CONDUCTOR - Real-time NYC Subway Visualization and Analytics</title>\n")
             f.write("<body style=\"font-family:helvetica;color:#4C4E52\">\n")
 
+            f.write("<div id=\"outer-frame\" width=100%>\n\
+	             <div id=\"reference\" style=\"position:absolute; left:50%; top:0px\">\n\
+                <div id=\"left\" height=704px width=" + str(LEFT_WIDTH) + "px style=\"position:absolute; top:0px; left:-" + str(LEFT_OFFSET) + "px\"><img src=\"r32_left.jpg\" /></div>\n\
+                    <div id=\"top\" height=" + str(TOP_HEIGHT) + "px width=" + str(PLOT_PX) + " style=\"position:absolute; top:-2px; left:-" + str(OFFSET) + "px;\"><img src=\"r32_top.jpg\" /></div>\n\
+	    <div id=\"display\" width=" + str(PLOT_PX) + "px height=" + str(PLOT_PX) + "px style=\"position:absolute; top:114px; left:-" + str(OFFSET) + "px\">\n")
             f.write(embed_data)
 
-            f.write("<br>")
+            f.write("</div>\n<div id=\"bottom\" height=37px width=" + str(PLOT_PX)+ "px style=\"position:absolute; top:" + str(BOTTOM_OFFSET) + "px; left:-" + str(OFFSET) + "px\"><img src=\"r32_bottom.jpg\" /></div>\n\
+                    <div id=\"right\" height=704px width=223px style=\"position:absolute; top:4px; left:" + str(OFFSET) + "px\"><img src=\"r32_right.jpg\" /></div>\n")
+            f.write("<div id=\"button-area\" width=" + str(BUTTON_WIDTH) + " height=150px style=\"z-index:10; position:absolute; top:" + str(TOTAL_HEIGHT) + "; left:-" + str(0.5*BUTTON_WIDTH) + "\">")
+
+            f.write("</div>\n<div id=\"text-area\" style=\"z-index:-10; margin:50px 50px 20px 50px; position:absolute; top:80%\">")
 	    f.write("<h1>Using Conductor</h1>\n")
             f.write("<p>The interactive plot should be displayed here. Refresh the page if it is not displayed, or if you are not seeing the visualization update every few seconds.</p>\n")
             f.write("<p>You can select interactive tools along the right side of the plot: pan, box zoom, resize, and reset view.</p>\n")
@@ -40,9 +70,8 @@ def write_template(embed_data):
 	    t_string = str(time.ctime())
             f.write("<p>This embed page was last generated: " + t_string + "</p>\n")
 
-            f.write("</body>\n")
-            f.write("</html>\n")
+            f.write("</div>\n</div>\n</body>\n</html>")
 
 if __name__=="__main__":
-    make_URL("http://104.131.255.76:5006/")
+    make_URL("http://104.131.255.76:5006/", "\n\nNULLNULLNULL\n\n")
     print "Updated index.html"

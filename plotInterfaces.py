@@ -8,7 +8,7 @@ import time
 import numpy as np
 
 from dataEngine import unit_perp
-from createLink import make_URL
+from createLink import make_embed_script
 from geography import  importShapefile, extract_silhouette
 
 #SERVER_URL = """http://104.131.255.76:5006/"""
@@ -22,6 +22,9 @@ LT_YELLOW = "#FFE066"
 LATE_MAGENTA = "#FF0066"
 GREEN = "#009933"
 GRAY = "#4C4E52"
+
+PLOT_WIDTH=500
+PLOT_HEIGHT=500
 
 def _make_polygon(U0, U1, a, m):
     V = unit_perp(U1-U0)
@@ -85,7 +88,7 @@ def _plotPatches(lineData):
         else:
             r0 =  np.array((xx[0], yy[0]))
             r1 =  np.array((xx[1], yy[1]))
-            w = 0.5 * t50/tmin * 0.005 * abs(x_scale[0])
+            w = 0.5 * (t50 + 0.001)/(tmin+ 0.001) * 0.005 * abs(x_scale[0]) 
             x_set, y_set =  _make_polygon(r0, r1, 0.2, w)
 
             xs.append(x_set)
@@ -149,7 +152,6 @@ class bokehPlotInterface():
 		for f in fields:
 			columnDict[f] = data[f].values
 			#hoverlist.append(("\"" + f + "\"" , "\"@" + f + "\""))
-			hoverlist.append((f, "@" + f))
                 print "hoverlist",hoverlist
 
 
@@ -167,13 +169,15 @@ class bokehPlotInterface():
 
                 figure(x_range=Range1d(start=self.xmin, end=self.xmax),
 			y_range=Range1d(start=self.ymin, end=self.ymax),
-		        title = "CONDUCTOR - Real-time Subway Visualization and Analytics",
+		        title = "",#CONDUCTOR - Real-time Subway Visualization and Analytics",
 		        title_text_font_size = "14pt",
 		        title_text_color = GRAY, 
 			x_axis_type=None,
 			y_axis_type=None,
                        	min_border=0,
-                       	outline_line_color=None)
+                       	outline_line_color=None,
+                        plot_width=PLOT_WIDTH,
+                        plot_height=PLOT_HEIGHT)
 
 		hold()
 
@@ -184,6 +188,7 @@ class bokehPlotInterface():
                 self.hover = curplot().select(dict(type=HoverTool)) # bokeh version >= 0.6
 		#self.hover.tooltips = self.hoverDict
                 self.hover.useString = True
+                self.hover.styleProperties = {"color":"white", "backgroundColor":GRAY}
                 #self.hover.stringData = list(allData['formatted_string'])
 
                 _plotGeography(downsample_interval=33)
@@ -195,6 +200,8 @@ class bokehPlotInterface():
                 text([1020884], [237246], text="The Bronx", text_baseline="middle", text_align="left", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
 
                 self.curplot = curplot
+                #self.curplot.plot_height = PLOT_HEIGHT
+                #self.curplot.plot_width = PLOT_WIDTH
 
 		xaxis().grid_line_color = None
 		yaxis().grid_line_color = None
@@ -222,7 +229,8 @@ class bokehPlotInterface():
 			self._animate_plot(df, lineData, dynamicFields, timestring)
 
                 EMBED_DATA = autoload_server(curplot(), cursession())
-                make_URL(SERVER_URL, EMBED_DATA)
+                #make_URL(SERVER_URL, EMBED_DATA)
+                make_embed_script(EMBED_DATA)
 
 if __name__=="__main__":
 	print "TESTING PLOT WITH DATA SET"
