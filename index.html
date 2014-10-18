@@ -1,0 +1,74 @@
+<html>
+<head>
+<title>CONDUCTOR - Real-time NYC Subway Visualization and Analytics</title>
+<style>
+.buttonStyle {
+	background-color:transparent;
+	-moz-border-radius:10px;
+	-webkit-border-radius:10px;
+	border-radius:10px;
+	border:2px solid #4c4e52;
+	display:inline-block;
+	cursor:pointer;
+	color:#4c4e52;
+	font-family:Helvetica, sans-serif;
+	font-size:14px;
+	padding:3px 8px;
+	text-decoration:none;
+}
+
+.buttonStyle:hover {
+	background-color:transparent;
+}
+
+.buttonStyle:active {
+	border:2px solid yellow;
+	/*position:relative;
+	top:1px;*/
+}
+</style>
+</head>
+
+<body style="font-family:helvetica;color:#4C4E52">
+<div id="outer-frame" width=100%>
+	<div id="plot-frame" height=710px width=100%> 
+		<div id="reference" style="position:absolute; left:50%; top:-3px">
+			<div id="left" height=704px width=239px style="position:absolute; top:1px; left:-489px"><img src="r32_left.jpg" /></div>
+			<div id="top" height=113px width=500px style="position:absolute; top:-3px; left:-250px;"><img src="r32_top.jpg" /></div>
+			<div id="display" width=500px height=500px style="position:absolute; top:114px; left:-250px"><script src="embed_bokeh_plot.js"></script></div>
+			<div id="bottom" height=53px width=500px style="position:absolute; top:653px; left:-250px"><img src="r32_bottom.jpg" /></div>
+			<div id="right" height=704px width=223px style="position:absolute; top:4px; left:250px"><img src="r32_right.jpg" /></div>
+			<div id="button-area" width=500px style="position:absolute; top:669px; left:-250px; z-index:100">
+				<button id='button-using' class="buttonStyle"  onclick="showText(text_using)">Use</button>
+				<button id='button-about' class="buttonStyle"  onclick="showText(text_about)">About</button>
+				<button id='button-tech' class="buttonStyle" onclick="showText(text_tech)">Technical Notes</button>
+			</div>
+		</div><!-- reference -->
+	</div><!-- plot-frame -->
+</div> <!-- outer-frame -->
+<div id="lower-frame-reference" style="position:absolute; left:50%">
+	<div id="lower-frame" style="width:700px; position:absolute; top:705px; left:-350px">
+		<!--<div id="lower-frame-reference" style="position:absolute; left:50%">-->
+	<!--<div id="text-box" width=500px style="position:absolute; left:-250px; top:705px">-->
+		<div id='info-text'></div>
+			<!--<div id='footer' width=500px text-align:'center' style="position:absolute; left:-250px; top:99%">
+		<p>This embed page was last generated: [timestamp]</p>
+	</div>-->
+			<!--
+		</div>
+	-->
+	</div>
+</div>
+
+<script>
+var text_using = "<h1>Using Conductor</h1> <p>The interactive plot should be displayed here. Refresh the page if it is not displayed, or if you are not seeing the visualization update every few seconds.</p> <p>You can select interactive tools along the right side of the plot: pan, box zoom, resize, and reset view.</p> <p>This plot represents the real-time state of the 4/5/6 lines of the New York City subway system. By hovering over train and station objects, you can view data about the system, including geographical location, and trip duration and current status.</p> <p>If you zoom in along the routes, you'll notice yellow shading along certain segments. This is a representation of how much trip times vary for the given segment. The width of the yelow-shaded area is proportional to the ratio of the median trip time along that semgent to the minimum trip time along that segment. In other words, for a segment of the trip with a wide shaded area, the time to cover this segment varies considerably and this segment is a source of delays.</p>";
+var text_about = "<h1>About Conductor</h1> <p>Conductor uses the New York City subway system's real-time data feed to do analysis and interactive visualization of the subways, incorporating live as well as historical data.</p> <p>Conductor is written in Python and makes use of the Bokeh plotting library. It is an open source project under active development. Here is the project on <a href=\"http://github.com/johngergely/conductor\">github</a>. You'll find the code repository, additional technical documentation, and in-process data analysis.</p>";
+var text_tech = "<h2>Technical Notes</h2> <p>It's pretty complicated.</p>";
+
+function showText(txt) {
+	document.getElementById('info-text').innerHTML = txt;
+};
+</script>
+
+</body>
+</html>
