@@ -47,6 +47,10 @@ def _color_for_status(c):
                 #print "color sequence",c,R,G,B
                 return "rgba(" + str(R) + ", " + str(G) + ", " + str(B) + ", " + str(alpha) + ")"
 
+def _color_for_y(y, ymin, ymax):
+        r = (y-ymin)/(ymax-ymin)
+        return "rgba(" + str(int(255*(1-r))) + ", " + str(0) + ", " + str(int(255*r)) + ", " + str(1) + ")"
+
 def unit_perp(U, handedness=1.):
     U_mag = np.sqrt(np.dot(U,U))
     if U_mag == 0.:
@@ -182,13 +186,18 @@ class systemManager():
                                     self.stopSeries[targetStop].associateRoute(ll,dd,self._allRoutes[ri].trainsOnRoute)
                 print "INITIALIZED ALL ROUTES",len(self._allRoutes)
 
-                self.activeTrains = {}
+                #self.activeTrains = {}
+                self.activeTrains = OrderedDict()
 		#print "Stop Data Loaded",self.stopSeries.index
 
 	def plot_boundaries(self):
 		xmin, xmax, ymin, ymax = self.stationLoc.get_area()
                 xmin, ymin = _map_projection(xmin, ymin)
                 xmax, ymax = _map_projection(xmax, ymax)
+                self.xmin = xmin
+                self.ymin = ymin
+                self.xmax = xmax
+                self.ymax = ymax
 		return xmin, xmax, ymin, ymax
 
         def selectData(self, newDF):
@@ -221,7 +230,7 @@ class systemManager():
                         ll = train_id.split("_")[1][0]
                         dd = train_id.split(".")[-1][0]
                         stopRecastID = routeDest[:-1] + "N"
-                        trip_duration = self.stopSeries[stopRecastID].duration_dict.get((ll,dd),{}).get(hour,0.)
+                        trip_duration = self.stopSeries[stopRecastID].duration_dict.get((ll,dd),{}).get(hour,0)
                         train.update_position(t_now, coords, isLate, progressFraction, segment_duration, trip_duration, self.plot_fields)
                 for stop_id in self.stopSeries.index:
                         self.stopSeries[stop_id].updateProgress(t_now, self.plot_fields)
@@ -256,6 +265,7 @@ class systemManager():
                 #print stationData
                 #print scatterData
                 #print lineData
+                print len(stationData),len(scatterData)
 		return stationData, scatterData, lineData, self.plot_fields, self.hover_fields
 
 	def _updateTrain(self, trip_id, timestamp, next_stop, t_arrive, t_depart):
@@ -353,7 +363,7 @@ class trainObj(vizComponent):
                 self.attrib['prev_stop'] = prev_stop 
                 self.attrib['routeID'] = (self.attrib['prev_stop'], self.attrib['next_stop'])
 		self.attrib['sched_arrival'] = 0.
-		self.attrib['trip_origin'] = self._calc_trip_origin()
+		self.attrib['trip_origin'] = self._calc_trip_origin(timestamp)
 		self.attrib['last_stop_time'] = timestamp
                 self.attrib['isLate'] = False
                 self.attrib['name'] = self._make_train_name()
@@ -399,8 +409,11 @@ class trainObj(vizComponent):
         def update_position(self, timestamp, coords, isLate, progressFraction, T_segment_avg, T_trip_avg, fields):
                 self.attrib['segment_actual'] = (timestamp - self.attrib['t_segment_start'])/60.
                 self.attrib['t_segment_stored'] = T_segment_avg/60.
-                t_trip_late = self.attrib['duration_actual'] - T_trip_avg
-                lateFactor = max(0.,t_trip_late)/self.attrib['duration_actual']
+                if T_trip_avg == 0:
+                    lateFactor = 0.
+                else:
+                    t_trip_late = self.attrib['duration_actual'] - T_trip_avg
+                    lateFactor = max(0.,t_trip_late)/self.attrib['duration_actual']
                 #print self.attrib['id'], t_trip_late,self.attrib['duration_actual'],lateFactor,lateFactor/0.3
 
                 #if t_segment_late > 0:
@@ -408,13 +421,14 @@ class trainObj(vizComponent):
                 #                self.attrib['status'] = "late_ALL"
                 #        else:
                 #                self.attrib['status'] = "late_segment"
-                if t_trip_late > 0:
-                        self.attrib['status'] = "late_trip"
+                ##if t_trip_late > 0:
+                ##        self.attrib['status'] = "late_trip"
                 self.update_count += 1
                 self.attrib['isLate'] = isLate 
 		if isLate:
 			self.attrib['t_late'] = (timestamp - self.attrib['sched_arrival'])/60.
                 markerColor = _color_for_status(lateFactor)
+                #markerColor = _color_for_y(coords[1], 149176.556361, 268405.335508)
                 markerAlpha = 1.0
                 if self.attrib['status'] == "inactive":
                         markerAlpha = 0.0
@@ -446,11 +460,15 @@ class trainObj(vizComponent):
                 #print "formatted string",trainPlotData['formatted_string'].values
                 self.setPlotData(trainPlotData)
 
-        def _calc_trip_origin(self):
-		t_ref = get_TOD_reference(float(self.attrib['time_of_update']))
+        def _calc_trip_origin(self, current_time):
+		t_ref = get_TOD_reference(current_time)
 		minutes100 = float(self.attrib['id'].split("_")[0])
 		#print "CALC ORIGIN",0.6*minutes100 + t_ref,self.attrib["time_of_update"], self.attrib["time_of_update"]-(0.6*minutes100 + t_ref)
-                return int(0.6*minutes100 + t_ref)
+                t_origin = int(0.6*minutes100 + t_ref)
+                if current_time - t_origin < -3600: #some trips are reported before departure so negative times will manifest
+                        return t_origin - 86400 #subtract number of seconds in a day to handle midnight crossings
+                else:
+                        return t_origin
 
         def _make_train_name(self):
                 ll = self['id'].split("_")[1][0]

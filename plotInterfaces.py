@@ -23,8 +23,8 @@ LATE_MAGENTA = "#FF0066"
 GREEN = "#009933"
 GRAY = "#4C4E52"
 
-PLOT_WIDTH=500
-PLOT_HEIGHT=500
+PLOT_WIDTH=600
+PLOT_HEIGHT=600
 
 def _make_polygon(U0, U1, a, m):
     V = unit_perp(U1-U0)
@@ -46,25 +46,12 @@ def _plotLineData(lineData):
     for i in range(len(lineData['x'])):
         xx = lineData['x'][i]
         yy = lineData['y'][i]
-        tmin = float(lineData['t_min'][i])
-        t50 = float(lineData['t_50pct'][i])
-        t75 = float(lineData['t_75pct'][i])
 
         xs.append(xx)
         ys.append(yy)
         alphas.append(1.0)
         colors.append(BLUE)
         widths.append(1.0)
-        ##xs.append(xx)
-        ##ys.append(yy)
-        ##alphas.append(0.25)
-        ##colors.append(GOLDENROD)
-        ##widths.append(3*t50/tmin)
-        ##xs.append(xx)
-        ##ys.append(yy)
-        ##alphas.append(0.15)
-        ##colors.append(LT_YELLOW)
-        ##widths.append(3*t75/tmin)
     return multi_line(xs, ys, alpha=alphas, color=colors, line_width=widths, line_cap="round", line_join="round")
 
 def _plotPatches(lineData):
@@ -82,13 +69,14 @@ def _plotPatches(lineData):
         t50 = float(lineData['t_50pct'][i])
         t75 = float(lineData['t_75pct'][i])
 
+        amplitude = (t50 + 0.001)/(tmin+ 0.001)
         U = np.array((xx[1]-xx[0], yy[1]-yy[0]))
 	if np.dot(U,U) == 0.:
             continue
         else:
             r0 =  np.array((xx[0], yy[0]))
             r1 =  np.array((xx[1], yy[1]))
-            w = 0.5 * (t50 + 0.001)/(tmin+ 0.001) * 0.005 * abs(x_scale[0]) 
+            w = 0.5 * amplitude * 0.005 * abs(x_scale[0]) 
             x_set, y_set =  _make_polygon(r0, r1, 0.2, w)
 
             xs.append(x_set)
@@ -142,9 +130,9 @@ class bokehPlotInterface():
 
         def _init_hover(self, data, fields):
                 if self._hover_enabled:
-                        self.TOOLS = ['pan', 'box_zoom', 'wheel_zoom', 'resize', 'reset', 'hover']
-                else:                                                                    
-                        self.TOOLS = ['pan', 'box_zoom', 'wheel_zoom', 'resize', 'reset'] 
+                        self.TOOLS = ['pan', 'box_zoom', 'wheel_zoom', 'reset', 'hover']
+                else:                                                          
+                        self.TOOLS = ['pan', 'box_zoom', 'wheel_zoom', 'reset'] 
 
 		#choosefields = {'train':['name','approaching','duration','late'], 'station':['name','x','y']}
 		columnDict = {}
@@ -182,6 +170,7 @@ class bokehPlotInterface():
 		hold()
 
 		scatter(allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
+		#circle(x=allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
                
                 # get hold of this to display hover data
                 #hover = [tools for tools in curplot().tools if isinstance(tools, HoverTool)][0] ## outdated for bokeh version < 0.6
@@ -213,12 +202,18 @@ class bokehPlotInterface():
 
 		self._first_plot = False
 
-	def _animate_plot(self, data, lineData, fields, timestring):
-		for f in fields:
-			self.ds.data[f] = data[f]
-
-                #text([self.xmin], [self.ymax], text=time.ctime(timestring), text_baseline="middle", text_align="left", angle=0)
-
+	def _animate_plot(self, data, fields):
+                for f in self.ds.data.keys():
+                        if not f in data.columns:
+                                if f=='line_color' or f=='fill_color':
+			                self.ds.data[f] = data['color']
+                                elif f=='line_alpha' or f=='fill_alpha':
+			                self.ds.data[f] = data['alpha']
+                                else:
+                                        print "KEY",f,"NOT FOUND IN",data.keys()
+                        else:
+			        self.ds.data[f] = data[f]
+		self.ds.data["formatted_string"] = data.get("formatted_string")
         	cursession().store_objects(self.ds)
 	
 	def plot(self, staticData, dynamicData, lineData, dynamicFields, hoverFields, timestring):
@@ -226,7 +221,7 @@ class bokehPlotInterface():
 		if self._first_plot:
 			self._init_plot(df, lineData, hoverFields, timestring)
 		else:
-			self._animate_plot(df, lineData, dynamicFields, timestring)
+			self._animate_plot(df, dynamicFields)
 
                 EMBED_DATA = autoload_server(curplot(), cursession())
                 #make_URL(SERVER_URL, EMBED_DATA)
