@@ -1,7 +1,18 @@
 <html>
 <head>
 <title>CONDUCTOR - Real-time NYC Subway Visualization and Analytics</title>
+
 <style>
+
+.displayWindow {
+	background-color:transparent;
+	-moz-border-radius:20px;
+	-webkit-border-radius:20px;
+	border-radius:20px;
+	border:10px solid #4c4e52;
+	padding:10px 10px;
+}
+
 .buttonStyle {
 	background-color:transparent;
 	-moz-border-radius:10px;
@@ -31,26 +42,34 @@
 
 <body style="font-family:helvetica;color:#4C4E52">
 <div id="outer-frame" width=100%>
-	<div id="plot-frame" height=710px width=100%> 
-		<div id="reference" style="position:absolute; left:50%; top:-3px">
-			<div id="left" height=704px width=239px style="position:absolute; top:1px; left:-489px"><img src="r32_left.jpg" /></div>
-			<div id="top" height=113px width=500px style="position:absolute; top:-3px; left:-250px;"><img src="r32_top.jpg" /></div>
-			<div id="display" width=500px height=500px style="position:absolute; top:114px; left:-250px"><script src="embed_bokeh_plot.js"></script></div>
-			<div id="bottom" height=53px width=500px style="position:absolute; top:653px; left:-250px"><img src="r32_bottom.jpg" /></div>
-			<div id="right" height=704px width=223px style="position:absolute; top:4px; left:250px"><img src="r32_right.jpg" /></div>
-			<div id="button-area" width=500px style="position:absolute; top:669px; left:-250px; z-index:100">
-				<button id='button-using' class="buttonStyle"  onclick="showText(text_using)">Use</button>
-				<button id='button-about' class="buttonStyle"  onclick="showText(text_about)">About</button>
+	<div id="plot-frame" height=750px width=100%> 
+		<div id="reference" style="position:absolute; left:50%; top:5px">
+			<!--<div id="bg" height=960px width=1458px style="position:absolute; top:1px; left:-729px; opacity:0.4; z-index:-10"><img src="r32_wide.jpg" /></div>
+			<div id="top" style="opacity:0.4; position:absolute; top:0px; left:-401px; height:109px; width:802px "><img src="r32_top_802x109.jpg" /></div>
+			<div id="left" style="opacity:0.4; position:absolute; top:109px; left:-489px; height:597px; width=244px;"><img src="r32_left_244x597.jpg" /></div>-->
+			<div id="title" style="width:600px; height:50px; position:absolute; top:10px; left:-300px; text-align:center; z-index:-10; font-size:30px">C&nbsp O&nbsp N&nbsp D&nbsp U&nbsp C&nbsp T&nbsp O&nbsp R</div>
+			<div id="load-msg" style="width:600px; height:50px; position:absolute; top:400px; left:-300px; text-align:center; z-index:-10; font-size:20px">LOADING VISUALIZATION...</div>
+			<div id="display" class="displayWindow" style="width:610px; height:680px; position:absolute; top:0px; left:-305px; z-index:-5;">
+				<div id="bg-image" style="z-index:-10; position:absolute; top:50px; left:20px; text-align:center; opacity:0.9;"><img src="r32_doors.jpg"/></div>
+				<div id="plot"; style="display:none; z-index:0; position:absolute; top:0px;"><script src="embed_bokeh_plot.js"></script></div>
+			</div>
+				<!--
+			<div id="right" style="opacity:0.4; position:absolute; top:109px; left:250px; height:597px width:223px;"><img src="r32_right_223x597.jpg" /></div>
+			<div id="bottom" style="opacity:0.4; height:53px; width:500px; position:absolute; top:652px; left:-250px; z-index:-10"><img src="r32_bottom_339x52.jpg" /></div>-->
+			<div id="button-area" style="width:500px; position:absolute; top:675px; left:-230px; z-index:-1">
+				<button id='button-about' class="buttonStyle"  onclick="showText(text_about)">About Conductor</button>
+				<button id='button-using' class="buttonStyle"  onclick="showText(text_using)">Using Conductor</button>
+				<button id='button-how' class="buttonStyle"  onclick="showText(text_how)">How It Works</button>
 				<button id='button-tech' class="buttonStyle" onclick="showText(text_tech)">Technical Notes</button>
 			</div>
 		</div><!-- reference -->
 	</div><!-- plot-frame -->
 </div> <!-- outer-frame -->
 <div id="lower-frame-reference" style="position:absolute; left:50%">
-	<div id="lower-frame" style="width:700px; position:absolute; top:705px; left:-350px">
+	<div id="lower-frame" style="width:600px; position:absolute; top:700px; left:-300px">
 		<!--<div id="lower-frame-reference" style="position:absolute; left:50%">-->
 	<!--<div id="text-box" width=500px style="position:absolute; left:-250px; top:705px">-->
-		<div id='info-text'></div>
+	<div id='info-text'><h2>&nbsp</h2></div>
 			<!--<div id='footer' width=500px text-align:'center' style="position:absolute; left:-250px; top:99%">
 		<p>This embed page was last generated: [timestamp]</p>
 	</div>-->
@@ -61,9 +80,28 @@
 </div>
 
 <script>
-var text_using = "<h1>Using Conductor</h1> <p>The interactive plot should be displayed here. Refresh the page if it is not displayed, or if you are not seeing the visualization update every few seconds.</p> <p>You can select interactive tools along the right side of the plot: pan, box zoom, resize, and reset view.</p> <p>This plot represents the real-time state of the 4/5/6 lines of the New York City subway system. By hovering over train and station objects, you can view data about the system, including geographical location, and trip duration and current status.</p> <p>If you zoom in along the routes, you'll notice yellow shading along certain segments. This is a representation of how much trip times vary for the given segment. The width of the yelow-shaded area is proportional to the ratio of the median trip time along that semgent to the minimum trip time along that segment. In other words, for a segment of the trip with a wide shaded area, the time to cover this segment varies considerably and this segment is a source of delays.</p>";
-var text_about = "<h1>About Conductor</h1> <p>Conductor uses the New York City subway system's real-time data feed to do analysis and interactive visualization of the subways, incorporating live as well as historical data.</p> <p>Conductor is written in Python and makes use of the Bokeh plotting library. It is an open source project under active development. Here is the project on <a href=\"http://github.com/johngergely/conductor\">github</a>. You'll find the code repository, additional technical documentation, and in-process data analysis.</p>";
-var text_tech = "<h2>Technical Notes</h2> <p>It's pretty complicated.</p>";
+	var curO = document.getElementById("bg-image").style.opacity;
+	var dT = 150;
+	interval = setInterval(function() {
+		if (curO > 0.05) {
+			curO -= 0.05;
+			document.getElementById("bg-image").style.opacity=curO;
+		} else {
+			clearInterval(interval);
+			document.getElementById("plot").style.display="block";
+		}
+
+	}, dT);
+</script>
+
+<script>
+var text_about="<h2>About Conductor</h2> <p>Conductor is an open-source software project that collects, analyzes, and visualizes data from the New York City subway system's <a href=\"http://badlink.com\">real-time data feed</a>.</p> <p>The vision for the project is to study an interesting open data set that is of practical relevance to millions of people and develop software tools to explore the data set in creative and possibly novel ways, drawing on techniques from data science and visualization. It is hoped that this project contains something interesting for subway commuters, people looking to learn more about data science or visualization, as well as seasoned developers and data scientists.</p> <p>Conductor is written in Python and makes use of the Bokeh plotting library. It is an open source project under active development. Here is the project on <a href=\"http://github.com/johngergely/conductor\">github</a>, where you'll find the code repository and additional technical documentation.</p> <p>John Gergely is the developer. <a href=\"mailto:johngergely@gmail.com?subject=conductor feedback\">Questions and feedback</a> from users and developers are most welcome.</p>";
+
+var text_using="<h2>Using Conductor</h2> <p>The plot above represents the real-time status of several lines in the New York City Subway system (1/2/3/4/5/6 lines are shown). Stations are represented by blue dots. Trains are represented by larger circles that change color from green to red as the train reports trip delays as compared to past performance along the route. You can explore the interactive plot by hovering your mouse over station and train objects to view data about schedule, route, as well as past  and current performance.</p><p>At the top right of the plot you'll find tools to manipulate the plot: you can pan and zoom and reset the view if you want to the original presentation.</p><p>The motivation for this visualization is to simultaneously convey an intuitive snapshot of the current state of the subway system as well as a present access to detailed and, it is hoped, insightful data about the system's operation. With this in mind, you are invited to approach this tool as an evolving projet, a work-in-progress of both design and data analysis. Along these lines, feedback about this visualization is most welcome, both from the perspective of daily commuters who might derive practical use from the plot and from design and data practitioners who have suggestions about how to improve the preesentation or analysis.</p><p>If you zoom in along the routes, you'll notice yellow shading along certain segments. This is a representation of how much trip times vary for the given segment. The width of the yelow-shaded area is proportional to the ratio of the median trip time along that semgent to the minimum trip time along that segment. In other words, for a segment of the trip with a wide shaded area, the time to cover this segment varies considerably and this segment is a source of delays.</p>";
+
+var text_how="<h2>How It Works</h2> <p>Real-time data are available for a portion of the New York City subway system's trains, namely those running on the 1/2/3/4/5/6 and L lines. Roughly every 30 seconds, each train currently running reports its identifier and a list of stops it is planned to make, along with scheduled arrival times. Data obtained from the real-time feed look like this:</p> <p><span style=\"font-family:monospace\">1404433451,117550_1..S02R,20140703,136S,1404433470,1404433470<br>1404433451,117900_1..N09R,20140703,111N,1404433451,1404433451<br>1404433451,118050_1..S02R,20140703,132S,1404433474,1404433474<br>1404433451,118400_1..N02R,20140703,115N,1404433468,1404433468</span></p><p>The Conductor project includes a tool to query the real-time feed and parse and store the supplied information, providing both a snapshot of the subway system as it is at a given moment as well as a historical record of its behavior.</p><p>From this raw data, Conductor generates a dynamic visualization of the system. By matching train routes with geographical station locations, a map projection is generated and updated every few seconds to provide a nearly-real-time snapshot of subway activity. Coordinates are supplied to Bokeh, a versatile open-source plotting library for Python, to generate the image you see above.</p><p>The visual representation is supplemented with aggregate data about the behavior of the subway system at any point along each route for a given time of day. Comparing this data on past performance with current details permits a nuanced and fascinating look at the real-life dynamics of an extremely complex transit system that moves millions of people around New York City each day.</p><p>One of the key data science questions motivating this project has been how to identify and predict delays or deviations from scheduled behavior. Research on this question remains active, and this visualization provides an interactive look at the problem. Because the subway system is so complex and heavily used, trains are scheduled with high frequency (every few minutes) throughout the daytime, but deviations from the published schedule are common. As real-time dynamics evolve, the schedule set by the MTA and followed by a specific train is adjusted accordingly. Of course, this makes sense, because a train cannot keep its original schedule if congestion or delays have slowed trains in front of it; it would be either meangingless or unsafe for it to keep its set schedule regardless of the status of other trains in the system.</p><p>Therefore, simply asking whether a train keeps to its schedule is not very insightful. Instead, it may be more illuminating to compare current behavior with past performance for a given time of day and day of week. Knowing how train typically behave can help to identify deviations and perhaps even predict the behavior of trains in advance.</p><p>This is the idea that motivates the data presented in the visualization: both present status of each train and station stop as well as historical data about the typcial frequency of trains at a given stop and the typical time elapsed for a train to reach a certain point along its route. </p>";
+
+var text_tech="<h2>Technical Notes</h2> <h3>Bokeh Implementation</h3><p>The visualization is implemented with Bokeh, a versatile open-source Python plotting library that is under active development. One initial motivation for this project was to make a case study of the premise that robust, performant data science and visualization can be done with an all-Python stack. Bokeh represents a key component of this maturing stack, and this project represents a demonstration and thorough exercise of Bokeh's capabilities. While the intention is to keep Conductor compatible with current Bokeh releases, the plot seen above makes use of a forked development version of Bokeh that contains a few minor modifications, mostly having to do with styling and formatting of the text displayed in the hover tooltip popup windows.</p> <h3>Scope of the MTA real-tim data feed</h3><p>New York City subway commuters may be disappointed to see that their favorite subway line is not displayed here; this reflects a limitation of the data set collected and disseminated by the New York City MTA. Currently, the subway system is equipped to collect real-time data only on trains running on the 1/2/3/4/5/6 and L lines. While Conductor is able to collect real-time data for the L train, it is not shown in this plot because there is not yet a sufficient archive compiled to present data on past peformance.</p> <h3>Artifacts and Suspected Bugs</h3><p>Conductor is not warranted to be bug-free. Indeed, as it is under active development, it should be regarded as buggy unless evidence exists to the contrary. Therefore, reports of suspected bugs are welcome, as are pull requests to expand the tool's capabilities.</p> <p>Apart from the likely presence of bugs, Conductor should also be expected to occasionally do weird stuff. This is, to some extent, a design decision to portray and interpret the real-time data collected from the MTA feed as accurately and with as much transparency as possible. Because the system itself is so complex, the real-time data reflect that, with the result that one often observes weird behavior. Trains appear and disappear as route assignments and service status are changed. Occasionally trains are re-routed on non-standard routes and will appear at unexpected places on the map. I find this honest accounting of the subway system's dynamics preferable to a tool that tries to be clever and mask anomalous behavior from the user. Notwithstanding this, there is also a good chance weird behavior is the result of a bug, so please report it.</p> <p></p> <p></p>";
 
 function showText(txt) {
 	document.getElementById('info-text').innerHTML = txt;
