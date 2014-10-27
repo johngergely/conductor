@@ -127,6 +127,7 @@ class systemManager():
                 self.selectDirections = setDirections
                 self.routeData = routeData()
                 self.stationLoc = stationLoc()
+                self.test_alpha = 0.
 
                 self.hover_fields = []#['name','time','location','schedule','data']
 		self.plot_fields = ['x', 'y', 'color', 'size', 'alpha', 'formatted_string'] + self.hover_fields
@@ -139,8 +140,8 @@ class systemManager():
                 self._durationAggregators = {}
                 for ll in self.selectLines:
                         for dd in self.selectDirections:
-                                frequencyAggregators[(ll,dd)] = frequencyAggregator(ll, dd)
-			        self._durationAggregators[(ll,dd)] = durationAggregator(ll,dd)
+                                frequencyAggregators[(ll,dd)] = frequencyAggregator(ll, dd)#, useComputed=False)
+			        self._durationAggregators[(ll,dd)] = durationAggregator(ll,dd)#, useComputed=False)
                 for ll in self.selectLines:
                     for ii in self.routeData.get(ll, "N")['id']:
                         stopList.append(ii)
@@ -160,14 +161,12 @@ class systemManager():
                 for si in stopList:
                     self.stopSeries[si] = stopObj(si, self.stationLoc[si,:], self.plot_fields, stopIntervals[si], stopDurations[si])
 
-                self._activeRoutes = {}
-		#self._routestats = {}
                 self._allRoutes = {}
                 self._segmentAggregators = {}
                 for ll in self.selectLines:
                     for dd in self.selectDirections:
                         routeSlice = self.routeData.get(ll, dd)
-			self._segmentAggregators[(ll,dd)] = segmentAggregator(ll,dd)
+			self._segmentAggregators[(ll,dd)] = segmentAggregator(ll,dd)#, useComputed=False)
 			#agg.select_range(--criteria--)
 			#agg.reset()
                         for ri in routeSlice.index:
@@ -221,11 +220,11 @@ class systemManager():
                 self._purgeStalled(newDF.loc[newDF.index[0],'timestamp'], 10.)
 
         def evolve(self, t_now, t_ref):
+                hour = time.localtime(t_now)[3]
                 for train in self.activeTrains.values():
                         routeOrigin, routeDest = train.attrib['routeID']
 			train_id = train.attrib['id']
                         coords, isLate, progressFraction = self._getRoute(train_id, (routeOrigin, routeDest)).trainPosition(train_id, t_now)
-                        hour = time.localtime(t_now)[3]
                         segment_duration = self._getRoute(train_id, (routeOrigin, routeDest)).stats.get(hour).get("50%",0.)
                         ll = train_id.split("_")[1][0]
                         dd = train_id.split(".")[-1][0]
@@ -234,6 +233,23 @@ class systemManager():
                         train.update_position(t_now, coords, isLate, progressFraction, segment_duration, trip_duration, self.plot_fields)
                 for stop_id in self.stopSeries.index:
                         self.stopSeries[stop_id].updateProgress(t_now, self.plot_fields)
+
+                self.test_alpha += 0.1
+                for route in self._allRoutes.values():
+                    alpha = 0.
+                    for train in route.trainsOnRoute.keys():
+                        t_late = self.activeTrains[train].attrib['t_late']
+                        if t_late > 0:
+                            t_segment = route.stats.get(hour).get("50%",0.01)/60.
+                            if not np.isnan(t_segment):
+                                alpha = min(1., alpha + 0.5*(t_late+0.001)/t_segment)
+                                #alpha = min(1., self.test_alpha)
+		    routePlotData = pd.DataFrame(
+                        index=[route.attrib['id']],
+                        columns=['x','y','alpha',],
+                        data=[[route.x_coords, route.y_coords, alpha]])
+                    route.setPlotData(routePlotData)
+
 
 
 	def drawSystem(self, timestring):
@@ -255,11 +271,14 @@ class systemManager():
 		#	scatterData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
                 #        #print train,self.activeTrains[train].data().loc[train,['color','formatted_string']].values
 
-                lineData = {'x':[], 'y':[], 't_min':[], 't_50pct':[], 't_75pct':[], 'name':[], 'info':[]}
+                #lineData = {'x':[], 'y':[], 't_min':[], 't_50pct':[], 't_75pct':[], 'name':[], 'info':[]}
+                lineData = {'x':[], 'y':[], 'alpha':[]}
                 for route in self._allRoutes.values():
-                    for ii in lineData.keys():
+                    for column in lineData.keys():
 			    for route_index in route.data().index:
-                            	lineData[ii].append(route.data().loc[route_index,ii])
+                            	lineData[column].append(route.data().loc[route_index,column])
+                lineData['size'] = [1 for l in range(len(lineData['alpha']))]
+                lineData['color'] = ["#FFCC00" for l in range(len(lineData['alpha']))]
 
                 #print "DATA"
                 #print stationData
@@ -293,7 +312,6 @@ class systemManager():
             if not self._allRoutes.get(tag):
 	        print "getRoute invoked route constructor between stations",origin,dest
                 self._allRoutes[tag] = routeObj(tag, origin, dest, self.stationLoc, self._segmentAggregators[(ll,dd)].fetchSeries((origin, dest)))
-            #return self._activeRoutes[tag]
             return self._allRoutes[tag]
 
         def _lookupPrev(self, trip_id, next_stop):
@@ -625,18 +643,17 @@ class routeObj(vizComponent):
                 hour = time.localtime(time.time())[3]
 		routePlotData = pd.DataFrame(
                     index=[self['id']],
-                    columns=['x','y','t_min','t_50pct','t_75pct','name','info','hover'],
-                    data=[[self.x_coords,
-                           self.y_coords,
-                           self.stats.get(hour,0.).get('min',0.),
-                           self.stats.get(hour,0.).get('50%',0.),
-                           self.stats.get(hour,0.).get('75%',0.),
-                           str(self['id']),
-                           infoString,
-                           False]])
-                routePlotData['t_min'] = routePlotData['t_min'].fillna(1.)
-                routePlotData['t_50pct'] = routePlotData['t_50pct'].fillna(1.)
-                routePlotData['t_75pct'] = routePlotData['t_75pct'].fillna(1.)
+                    columns=['x','y','alpha',],#'t_min','t_50pct','t_75pct','name','info','hover'],
+                    data=[[self.x_coords, self.y_coords, 0.]])
+                           ##self.stats.get(hour,0.).get('min',0.),
+                           ##self.stats.get(hour,0.).get('50%',0.),
+                           ##self.stats.get(hour,0.).get('75%',0.),
+                           ##str(self['id']),
+                           ##infoString,
+                           ##False]])
+                #routePlotData['t_min'] = routePlotData['t_min'].fillna(1.)
+                #routePlotData['t_50pct'] = routePlotData['t_50pct'].fillna(1.)
+                #routePlotData['t_75pct'] = routePlotData['t_75pct'].fillna(1.)
                 self.setPlotData(routePlotData)
 
         def trainPosition(self, trip_id, timestamp, dir_shift=True):

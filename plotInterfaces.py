@@ -65,11 +65,12 @@ def _plotPatches(lineData):
     for i in range(len(lineData['x'])):
         xx = lineData['x'][i]
         yy = lineData['y'][i]
-        tmin = float(lineData['t_min'][i])
-        t50 = float(lineData['t_50pct'][i])
-        t75 = float(lineData['t_75pct'][i])
+        #tmin = float(lineData['t_min'][i])
+        #t50 = float(lineData['t_50pct'][i])
+        #t75 = float(lineData['t_75pct'][i])
 
-        amplitude = (t50 + 0.001)/(tmin+ 0.001)
+        #amplitude = (t50 + 0.001)/(tmin+ 0.001)
+        amplitude = 8.0
         U = np.array((xx[1]-xx[0], yy[1]-yy[0]))
 	if np.dot(U,U) == 0.:
             continue
@@ -81,10 +82,11 @@ def _plotPatches(lineData):
 
             xs.append(x_set)
             ys.append(y_set)
-            alphas.append([0.25])
+            alphas.append([0.])
             colors.append([GOLDENROD])
 
-    return patches(xs, ys, fill_color=colors, fill_alpha=alphas, line_alpha=0.2, line_color=GOLDENROD)
+    lineDataSource = ColumnDataSource(data={'alpha':alphas})
+    return patches(xs, ys, fill_color=colors, fill_alpha=alphas, line_alpha=0.0, line_color=GOLDENROD, source=lineDataSource)
 
 def _plotGeography(downsample_interval=1):
         mh_index = -3
@@ -197,12 +199,16 @@ class bokehPlotInterface():
 		show()
 
                 # get hold of this to refresh data for animation
+		self.renderers = [r for r in curplot().renderers if isinstance(r, Glyph)]
+                print "RENDERERS"
+                for rend in self.renderers:
+                    print rend,rend.data_source.data.keys()
 		self.renderer = [r for r in curplot().renderers if isinstance(r, Glyph)][0]
 		self.ds = self.renderer.data_source
 
 		self._first_plot = False
 
-	def _animate_plot(self, data, fields):
+	def _animate_plot(self, data, lineData, fields):
                 for f in self.ds.data.keys():
                         if not f in data.columns:
                                 if f=='line_color' or f=='fill_color':
@@ -215,13 +221,18 @@ class bokehPlotInterface():
 			        self.ds.data[f] = data[f]
 		self.ds.data["formatted_string"] = data.get("formatted_string")
         	cursession().store_objects(self.ds)
+                #print "setting alphas"
+                #print lineData['alpha']
+                self.renderers[2].data_source.data['alpha'] = lineData['alpha']
+                self.renderers[2].data_source.data['fill_alpha'] = lineData['alpha']
+        	cursession().store_objects(self.renderers[2].data_source)
 	
 	def plot(self, staticData, dynamicData, lineData, dynamicFields, hoverFields, timestring):
 		df = pd.concat([staticData, dynamicData], axis=0)
 		if self._first_plot:
 			self._init_plot(df, lineData, hoverFields, timestring)
 		else:
-			self._animate_plot(df, dynamicFields)
+			self._animate_plot(df, lineData, dynamicFields)
 
                 EMBED_DATA = autoload_server(curplot(), cursession())
                 #make_URL(SERVER_URL, EMBED_DATA)
@@ -236,7 +247,8 @@ if __name__=="__main__":
         TOOLS = ['pan', 'box_zoom', 'wheel_zoom', 'resize', 'reset', 'hover']
         data = pd.DataFrame(columns=['x','y','name','type','records','iter','whatyouknow'], 
                             data=[[1.,1.,'a','character',"vinyl",0,None],
-                                  [2.,1.,'fox','animal',"yellow<br>blue<br>gray",0,'octopus']])
+                                  [2.,1.,'fox','animal',"yellow<br>blue<br>gray",0,'octopus']])#,
+                                  #[0.,0.,'jimbo','guy',"man i am sick of it",10,'octopus']])
         fields = ['name','type','iter','records','whatyouknow']
         columnDict = {}
         hoverlist = []
@@ -248,23 +260,40 @@ if __name__=="__main__":
         hoverDict = OrderedDict(hoverlist)
         print "HOVER FIELDS"
         print hoverDict
-        figure()
+        for k in source.data.keys():
+                print k,source.data[k]
+        figure(x_range=Range1d(start=-0.25, end=2.25),
+	    y_range=Range1d(start=-0.25, end=1.25))
         hold()
 
         scatter(data['x'], y=data['y'], size=10, source=source, tools=TOOLS)
-        circle(x=[0.], y=[0.], size=20, color='red', tools=TOOLS)
+        circle(x=[0.], y=[0.], size=20, color=["rgba(255,0,0,1)"], source=ColumnDataSource(data={'x':[0.], 'y':[0.], 'color':["rgba(255,0,0,1)"]}), tools=TOOLS)
 
         # get hold of this to display hover data
         hover = curplot().select(dict(type=HoverTool)) # bokeh version >= 0.6
         hover.tooltips = hoverDict
-        hover.useString = True
-        hover.stringData = ["sending as a string<br> even w a new line.", "second guy<br>&nbsp&nbspindent"]
-        #hover.stringStyle = {"color":"white", "backgroundColor":"rgba(0,0,255,0.4)"}
+        hover.useString = False#True
+        #hover.stringData = ["sending as a string<br> even w a new line.", "second guy<br>&nbsp&nbspindent"]
+        hover.stringStyle = {"color":"white", "backgroundColor":"rgba(0,0,255,0.4)"}
 
         show()
 
-        # get hold of this to refresh data for animation
-        #renderer = [r for r in curplot().renderers if isinstance(r, Glyph)][0]
-        #ds = renderer.data_source
-        #for f in fields:
-        #        ds.data[f] = data[f]
+        #get hold of this to refresh data for animation
+        renderer_list = [r for r in curplot().renderers if isinstance(r, Glyph)]
+        print "renderers",renderer_list
+        for eend in renderer_list:
+            print rend.data_source.data.keys()
+        renderer = renderer_list[0]
+        ds = renderer.data_source
+        for t in range(20):
+            ys = [y-t*0.03 for y in data['y']]
+            xs_1 = [t*0.03]
+            #ds.data['y'] = ys
+            renderer_list[0].data_source.data['y'] = ys
+            cursession().store_objects(renderer_list[0].data_source)
+            renderer_list[1].data_source.data['x'] = xs_1#"rgba(255," + str(10*t) + ", 0,1)"
+            renderer_list[1].data_source.data['color'] = ["rgba(255," + str(10*t) + ", 0,1)"]
+            renderer_list[1].data_source.data['fill_color'] = ["rgba(255," + str(10*t) + ", 0,1)"]
+            renderer_list[1].data_source.data['line_color'] = ["rgba(255," + str(10*t) + ", 0,1)"]
+            cursession().store_objects(renderer_list[1].data_source)
+            #cursession().store_objects(ds)
