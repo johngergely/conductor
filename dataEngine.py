@@ -127,7 +127,6 @@ class systemManager():
                 self.selectDirections = setDirections
                 self.routeData = routeData()
                 self.stationLoc = stationLoc()
-                self.test_alpha = 0.
 
                 self.hover_fields = []#['name','time','location','schedule','data']
 		self.plot_fields = ['x', 'y', 'color', 'size', 'alpha', 'formatted_string'] + self.hover_fields
@@ -234,16 +233,19 @@ class systemManager():
                 for stop_id in self.stopSeries.index:
                         self.stopSeries[stop_id].updateProgress(t_now, self.plot_fields)
 
-                self.test_alpha += 0.1
+                # show segment patches where trains are running behind schedule
                 for route in self._allRoutes.values():
                     alpha = 0.
                     for train in route.trainsOnRoute.keys():
                         t_late = self.activeTrains[train].attrib['t_late']
                         if t_late > 0:
-                            t_segment = route.stats.get(hour).get("50%",0.01)/60.
-                            if not np.isnan(t_segment):
-                                alpha = min(1., alpha + 0.5*(t_late+0.001)/t_segment)
-                                #alpha = min(1., self.test_alpha)
+                            #print "route",route.attrib['id'],"late contrib",train,t_late,alpha,
+                            # get the median travel time for this segment; return 0.01 if key not found to avoid divide-by-zero
+                            #t_segment = route.stats.get(hour).get("50%",0.01)/60.
+                            #if not np.isnan(t_segment):
+                            #    alpha = min(1., alpha + 0.5*(t_late+0.001)/t_segment)
+                            alpha = min(0.5, alpha + 0.1*t_late)
+                            #print alpha
 		    routePlotData = pd.DataFrame(
                         index=[route.attrib['id']],
                         columns=['x','y','alpha',],
@@ -417,6 +419,7 @@ class trainObj(vizComponent):
                         self.attrib['t_segment_start'] = time_of_update
                         self.attrib['T_trip_composite'] = self.attrib['T_trip_composite'] + self.attrib['t_segment_stored']
                         self.attrib['status'] = "normal"
+                        self.attrib['t_late'] = 0.
 
                 if time_of_update > t_arrive:
                         self.attrib['isLate'] = True
@@ -443,8 +446,10 @@ class trainObj(vizComponent):
                 ##        self.attrib['status'] = "late_trip"
                 self.update_count += 1
                 self.attrib['isLate'] = isLate 
-		if isLate:
-			self.attrib['t_late'] = (timestamp - self.attrib['sched_arrival'])/60.
+		#if isLate:
+		self.attrib['t_late'] = max(0.,(timestamp - self.attrib['sched_arrival'])/60.)
+                #if self.attrib['t_late'] > 0:
+                #    print self.attrib['id'],"updated late",self.attrib['t_late']
                 markerColor = _color_for_status(lateFactor)
                 #markerColor = _color_for_y(coords[1], 149176.556361, 268405.335508)
                 markerAlpha = 1.0
