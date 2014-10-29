@@ -194,7 +194,7 @@ class bokehPlotInterface():
                 self.hover = curplot().select(dict(type=HoverTool)) # bokeh version >= 0.6
 		#self.hover.tooltips = self.hoverDict
                 self.hover.useString = True
-                self.hover.styleProperties = {"color":"white", "backgroundColor":GRAY}
+                self.hover.styleProperties = {"color":"white", "backgroundColor":GRAY, "z-index":"10"}
                 #self.hover.stringData = list(scatterData['formatted_string'])
 
                 _plotGeography(downsample_interval=39)

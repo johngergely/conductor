@@ -44,13 +44,13 @@
 <div id="outer-frame" width=100%>
 	<div id="plot-frame" height=750px width=100%> 
 		<div id="reference" style="position:absolute; left:50%; top:5px">
-			<div id="title" style="width:600px; height:50px; position:absolute; top:10px; left:-300px; text-align:center; z-index:-10; font-size:30px">C&nbsp O&nbsp N&nbsp D&nbsp U&nbsp C&nbsp T&nbsp O&nbsp R</div>
-			<div id="load-msg" style="width:600px; height:50px; position:absolute; top:400px; left:-300px; text-align:center; z-index:-10; font-size:20px">LOADING VISUALIZATION...</div>
-			<div id="display" class="displayWindow" style="width:610px; height:680px; position:absolute; top:0px; left:-305px; z-index:-5;">
-				<div id="bg-image" style="z-index:-10; position:absolute; top:50px; left:20px; text-align:center; opacity:0.9;"><img src="r32_doors.jpg"/></div>
-				<div id="plot"; style="display:none; z-index:0; position:absolute; top:0px;"><script src="embed_bokeh_plot.js"></script></div>
+			<div id="title" style="width:600px; height:50px; position:absolute; top:10px; left:-300px; text-align:center; z-index:0; font-size:30px">C&nbsp O&nbsp N&nbsp D&nbsp U&nbsp C&nbsp T&nbsp O&nbsp R</div>
+			<div id="load-msg" style="width:600px; height:50px; position:absolute; top:400px; left:-300px; text-align:center; z-index:0; font-size:20px">LOADING VISUALIZATION...</div>
+			<div id="display" class="displayWindow" style="width:610px; height:680px; position:absolute; top:0px; left:-305px; z-index:5;">
+				<div id="bg-image" style="z-index:0; position:absolute; top:50px; left:20px; text-align:center; opacity:0.9;"><img src="r32_doors.jpg"/></div>
+				<div id="plot"; style="display:none; z-index:10; position:absolute; top:0px;"><script src="embed_bokeh_plot.js"></script></div>
 			</div>
-			<div id="button-area" style="width:600px; position:absolute; top:675px; left:-280px; z-index:-1">
+			<div id="button-area" style="width:600px; position:absolute; top:675px; left:-280px; z-index:9">
 				<button id='button-about' class="buttonStyle"  onclick="showText(text_about)">About Conductor</button>
 				<button id='button-using' class="buttonStyle"  onclick="showText(text_using)">Using Conductor</button>
 				<button id='button-how' class="buttonStyle"  onclick="showText(text_how)">How It Works</button>
