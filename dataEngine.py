@@ -261,33 +261,33 @@ class systemManager():
 			stationData.loc[stop,:] = self.stopSeries[stop].data().loc[stop,:]
 
                 index_list = [k for k in self.activeTrains.keys()]
-		scatterData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
-		for train in scatterData.index:
-			scatterData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
+		trainData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
+		for train in trainData.index:
+			trainData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
 		#index_list = []
 		#for k in self.activeTrains.keys():
 		#	if self.activeTrains[k].attrib['status'] != "inactive":
 		#		index_list.append(k)
-		#scatterData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
+		#trainData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
 		#for train in self.activeTrains.keys():
-		#	scatterData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
+		#	trainData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
                 #        #print train,self.activeTrains[train].data().loc[train,['color','formatted_string']].values
 
-                #lineData = {'x':[], 'y':[], 't_min':[], 't_50pct':[], 't_75pct':[], 'name':[], 'info':[]}
-                lineData = {'x':[], 'y':[], 'alpha':[]}
+                #routeData = {'x':[], 'y':[], 't_min':[], 't_50pct':[], 't_75pct':[], 'name':[], 'info':[]}
+                routeData = {'x':[], 'y':[], 'alpha':[]}
                 for route in self._allRoutes.values():
-                    for column in lineData.keys():
+                    for column in routeData.keys():
 			    for route_index in route.data().index:
-                            	lineData[column].append(route.data().loc[route_index,column])
-                lineData['size'] = [1 for l in range(len(lineData['alpha']))]
-                lineData['color'] = ["#FFCC00" for l in range(len(lineData['alpha']))]
+                            	routeData[column].append(route.data().loc[route_index,column])
+                routeData['size'] = [1 for l in range(len(routeData['alpha']))]
+                routeData['color'] = ["#FFCC00" for l in range(len(routeData['alpha']))]
 
                 #print "DATA"
                 #print stationData
-                #print scatterData
-                #print lineData
-                print len(stationData),len(scatterData)
-		return stationData, scatterData, lineData, self.plot_fields, self.hover_fields
+                #print trainData
+                #print routeData
+                print len(stationData),len(trainData)
+		return stationData, trainData, routeData, self.plot_fields, self.hover_fields
 
 	def _updateTrain(self, trip_id, timestamp, next_stop, t_arrive, t_depart):
 		t_arrive = max(t_arrive, t_depart)

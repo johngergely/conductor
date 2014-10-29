@@ -55,8 +55,9 @@ class plotManager():
             if self.T - T_last_plot > self.refreshPlotInterval:
 		t_plot = t_update + self.T - T_last_update
                 self.mgr.evolve(t_plot, t_update)
-                staticData, dynamicData, lineData, fields, hoverFields = self.mgr.drawSystem(t_plot)
-                self.plotMgr.plot(staticData, dynamicData, lineData, fields, hoverFields, t_plot)
+                stationData, trainData, routeData, fields, hoverFields = self.mgr.drawSystem(t_plot)
+		scatterData = pd.concat([stationData, trainData], axis=0)
+                self.plotMgr.plot(scatterData, routeData, fields, hoverFields, t_plot)
 		T_last_plot = self.T
 
 	    #time.sleep((1./self.acceleration)*self.refreshPlotInterval)
