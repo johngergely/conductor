@@ -6,6 +6,7 @@ from collections import OrderedDict
 
 import time
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 
 from dataEngine import unit_perp
 from createLink import make_embed_script
@@ -92,6 +93,7 @@ def _plotGeography(downsample_interval=1):
         mh_index = -3
         bx_index = -1
         bk_index = -1
+        qu_index = -1
         shp_source = "data/nybb_14b_av/nybb.shp"
 
         shapes = importShapefile(shp_source)
@@ -99,11 +101,29 @@ def _plotGeography(downsample_interval=1):
         shapes_x_lists = []
         shapes_y_lists = []
 
-        for shp_i,geo_i in [(1,mh_index), (2, bx_index), (3,bk_index)]:
+        for shp_i,geo_i in [(1,mh_index), (2, bx_index), (3,bk_index), (4,qu_index)]:
                 #print "SHAPEFILE SHAPE",shp_i,geo_i
                 xx,yy = extract_silhouette(shapes[shp_i], geo_i)
-                xx_resampled = [xx[i] for i in range(0,len(xx),downsample_interval)]
-                yy_resampled = [yy[i] for i in range(0,len(yy),downsample_interval)]
+                ## adapted from http://stackoverflow.com/questions/15178146/line-smoothing-algorithm-in-python
+                N_resample = len(xx)/downsample_interval
+                print "N_resample",N_resample
+                t = np.linspace(0, 1, len(xx))
+                t2 = np.linspace(0, 1, N_resample)
+                print "lengths xx t t2",len(xx),len(t),len(t2)
+                x2 = np.interp(t2, t, xx)
+                y2 = np.interp(t2, t, yy)
+                sigma = 1.2
+                #x3 = gaussian_filter1d(x2, sigma)
+                #y3 = gaussian_filter1d(y2, sigma)
+                xx_resampled = gaussian_filter1d(x2, sigma)
+                yy_resampled = gaussian_filter1d(y2, sigma)
+
+                #xx_resampled = np.interp(t, t2, x3)
+                #yy_resampled = np.interp(t, t2, y3)
+                print "lengths xx t t2 xx_resample",len(xx),len(t),len(t2),len(xx_resampled)
+                ##xx_resampled = [xx[i] for i in range(0,len(xx),downsample_interval)]
+                ##yy_resampled = [yy[i] for i in range(0,len(yy),downsample_interval)]
+                ######################
                 print "resampled shapefiles have length", len(xx_resampled), len(yy_resampled)
                 shapes_x_lists.append(xx_resampled)
                 shapes_y_lists.append(yy_resampled)
@@ -142,16 +162,11 @@ class bokehPlotInterface():
 		for f in fields:
 			columnDict[f] = data[f].values
 			#hoverlist.append(("\"" + f + "\"" , "\"@" + f + "\""))
-                print "hoverlist",hoverlist
-
-
                 self.source = ColumnDataSource(data=columnDict)
 		self.hoverDict = OrderedDict(hoverlist)
-                print "HOVER FIELDS"
-                print self.hoverDict
 
-	def _init_plot(self, allData, lineData, hoverFields, timestring):
-                self._init_hover(allData, hoverFields)
+	def _init_plot(self, scatterData, lineData, hoverFields, timestring):
+                self._init_hover(scatterData, hoverFields)
 		#staticplot = self.static_plot(staticData)
 
                 #self.xmin = data['x'].min()
@@ -171,8 +186,8 @@ class bokehPlotInterface():
 
 		hold()
 
-		scatter(allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
-		#circle(x=allData['x'], y=allData['y'], alpha=allData['alpha'], color=allData['color'], size=allData['size'], source=self.source, tools=self.TOOLS)
+		scatter(scatterData['x'], y=scatterData['y'], alpha=scatterData['alpha'], color=scatterData['color'], size=scatterData['size'], source=self.source, tools=self.TOOLS)
+		#circle(x=scatterData['x'], y=scatterData['y'], alpha=scatterData['alpha'], color=scatterData['color'], size=scatterData['size'], source=self.source, tools=self.TOOLS)
                
                 # get hold of this to display hover data
                 #hover = [tools for tools in curplot().tools if isinstance(tools, HoverTool)][0] ## outdated for bokeh version < 0.6
@@ -180,9 +195,9 @@ class bokehPlotInterface():
 		#self.hover.tooltips = self.hoverDict
                 self.hover.useString = True
                 self.hover.styleProperties = {"color":"white", "backgroundColor":GRAY}
-                #self.hover.stringData = list(allData['formatted_string'])
+                #self.hover.stringData = list(scatterData['formatted_string'])
 
-                _plotGeography(downsample_interval=33)
+                _plotGeography(downsample_interval=39)
                 _plotPatches(lineData)
                 _plotLineData(lineData)
 
@@ -203,36 +218,36 @@ class bokehPlotInterface():
                 print "RENDERERS"
                 for rend in self.renderers:
                     print rend,rend.data_source.data.keys()
-		self.renderer = [r for r in curplot().renderers if isinstance(r, Glyph)][0]
-		self.ds = self.renderer.data_source
+		#self.renderer = [r for r in curplot().renderers if isinstance(r, Glyph)][0]
+		#self.ds = self.renderer.data_source
 
 		self._first_plot = False
 
 	def _animate_plot(self, data, lineData, fields):
-                for f in self.ds.data.keys():
+                for f in self.renderers[0].data_source.data.keys():
                         if not f in data.columns:
                                 if f=='line_color' or f=='fill_color':
-			                self.ds.data[f] = data['color']
+			                self.renderers[0].data_source.data[f] = data['color']
                                 elif f=='line_alpha' or f=='fill_alpha':
-			                self.ds.data[f] = data['alpha']
+			                self.renderers[0].data_source.data[f] = data['alpha']
                                 else:
                                         print "KEY",f,"NOT FOUND IN",data.keys()
                         else:
-			        self.ds.data[f] = data[f]
-		self.ds.data["formatted_string"] = data.get("formatted_string")
-        	cursession().store_objects(self.ds)
+			        self.renderers[0].data_source.data[f] = data[f]
+		self.renderers[0].data_source.data["formatted_string"] = data.get("formatted_string")
+        	cursession().store_objects(self.renderers[0].data_source)
                 #print "setting alphas"
                 #print lineData['alpha']
-                self.renderers[2].data_source.data['alpha'] = lineData['alpha']
-                self.renderers[2].data_source.data['fill_alpha'] = lineData['alpha']
-        	cursession().store_objects(self.renderers[2].data_source)
+                patchRendererID = 2
+                self.renderers[patchRendererID].data_source.data['alpha'] = lineData['alpha']
+                self.renderers[patchRendererID].data_source.data['fill_alpha'] = lineData['alpha']
+        	cursession().store_objects(self.renderers[patchRendererID].data_source)
 	
-	def plot(self, staticData, dynamicData, lineData, dynamicFields, hoverFields, timestring):
-		df = pd.concat([staticData, dynamicData], axis=0)
+	def plot(self, scatterData, lineData, dynamicFields, hoverFields, timestring):
 		if self._first_plot:
-			self._init_plot(df, lineData, hoverFields, timestring)
+			self._init_plot(scatterData, lineData, hoverFields, timestring)
 		else:
-			self._animate_plot(df, lineData, dynamicFields)
+			self._animate_plot(scatterData, lineData, dynamicFields)
 
                 EMBED_DATA = autoload_server(curplot(), cursession())
                 #make_URL(SERVER_URL, EMBED_DATA)
