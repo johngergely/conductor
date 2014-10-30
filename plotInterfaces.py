@@ -62,7 +62,7 @@ def _plotPatches(lineData):
     colors = []
     widths = []
     x_scale = lineData['x'][1]-lineData['x'][0]
-    print "spatial scale",x_scale
+    #print "spatial scale",x_scale
     for i in range(len(lineData['x'])):
         xx = lineData['x'][i]
         yy = lineData['y'][i]
@@ -106,10 +106,10 @@ def _plotGeography(downsample_interval=1):
                 xx,yy = extract_silhouette(shapes[shp_i], geo_i)
                 ## adapted from http://stackoverflow.com/questions/15178146/line-smoothing-algorithm-in-python
                 N_resample = len(xx)/downsample_interval
-                print "N_resample",N_resample
+                #print "N_resample",N_resample
                 t = np.linspace(0, 1, len(xx))
                 t2 = np.linspace(0, 1, N_resample)
-                print "lengths xx t t2",len(xx),len(t),len(t2)
+                #print "lengths xx t t2",len(xx),len(t),len(t2)
                 x2 = np.interp(t2, t, xx)
                 y2 = np.interp(t2, t, yy)
                 sigma = 1.2
@@ -120,11 +120,11 @@ def _plotGeography(downsample_interval=1):
 
                 #xx_resampled = np.interp(t, t2, x3)
                 #yy_resampled = np.interp(t, t2, y3)
-                print "lengths xx t t2 xx_resample",len(xx),len(t),len(t2),len(xx_resampled)
+                #print "lengths xx t t2 xx_resample",len(xx),len(t),len(t2),len(xx_resampled)
                 ##xx_resampled = [xx[i] for i in range(0,len(xx),downsample_interval)]
                 ##yy_resampled = [yy[i] for i in range(0,len(yy),downsample_interval)]
                 ######################
-                print "resampled shapefiles have length", len(xx_resampled), len(yy_resampled)
+                #print "resampled shapefiles have length", len(xx_resampled), len(yy_resampled)
                 shapes_x_lists.append(xx_resampled)
                 shapes_y_lists.append(yy_resampled)
         return multi_line(xs=shapes_x_lists, ys=shapes_y_lists, alpha=0.45, line_width=5, color=GRAY)
@@ -202,8 +202,9 @@ class bokehPlotInterface():
                 _plotLineData(lineData)
 
                 text([995864], [191626], text="Brooklyn", text_baseline="middle", text_align="left",   text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
-                text([996549], [226269], text="Manhattan", text_baseline="middle", text_align="right", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
-                text([1020884], [237246], text="The Bronx", text_baseline="middle", text_align="left", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
+                text([986549], [218269], text="Manhattan", text_baseline="middle", text_align="right", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
+                text([1030884], [237246], text="The Bronx", text_baseline="middle", text_align="left", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
+                text([1008884], [206246], text="Queens", text_baseline="middle", text_align="left", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
 
                 self.curplot = curplot
                 #self.curplot.plot_height = PLOT_HEIGHT
@@ -215,9 +216,9 @@ class bokehPlotInterface():
 
                 # get hold of this to refresh data for animation
 		self.renderers = [r for r in curplot().renderers if isinstance(r, Glyph)]
-                print "RENDERERS"
-                for rend in self.renderers:
-                    print rend,rend.data_source.data.keys()
+                #print "RENDERERS"
+                #for rend in self.renderers:
+                #    print rend,rend.data_source.data.keys()
 		#self.renderer = [r for r in curplot().renderers if isinstance(r, Glyph)][0]
 		#self.ds = self.renderer.data_source
 
@@ -230,8 +231,8 @@ class bokehPlotInterface():
 			                self.renderers[0].data_source.data[f] = data['color']
                                 elif f=='line_alpha' or f=='fill_alpha':
 			                self.renderers[0].data_source.data[f] = data['alpha']
-                                else:
-                                        print "KEY",f,"NOT FOUND IN",data.keys()
+                                #else:
+                                #        print "KEY",f,"NOT FOUND IN",data.keys()
                         else:
 			        self.renderers[0].data_source.data[f] = data[f]
 		self.renderers[0].data_source.data["formatted_string"] = data.get("formatted_string")
@@ -270,13 +271,13 @@ if __name__=="__main__":
         for f in fields:
                 columnDict[f] = data.get(f)
                 hoverlist.append((f, "@" + f))
-        print "test hoverlist",hoverlist
+        #print "test hoverlist",hoverlist
         source = ColumnDataSource(data=columnDict)
         hoverDict = OrderedDict(hoverlist)
-        print "HOVER FIELDS"
-        print hoverDict
-        for k in source.data.keys():
-                print k,source.data[k]
+        #print "HOVER FIELDS"
+        #print hoverDict
+        #for k in source.data.keys():
+        #        print k,source.data[k]
         figure(x_range=Range1d(start=-0.25, end=2.25),
 	    y_range=Range1d(start=-0.25, end=1.25))
         hold()
@@ -295,9 +296,9 @@ if __name__=="__main__":
 
         #get hold of this to refresh data for animation
         renderer_list = [r for r in curplot().renderers if isinstance(r, Glyph)]
-        print "renderers",renderer_list
-        for eend in renderer_list:
-            print rend.data_source.data.keys()
+        #print "renderers",renderer_list
+        #for eend in renderer_list:
+        #    print rend.data_source.data.keys()
         renderer = renderer_list[0]
         ds = renderer.data_source
         for t in range(20):

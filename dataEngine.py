@@ -302,7 +302,7 @@ class systemManager():
                 #print stationData
                 #print trainData
                 #print routeData
-                print len(stationData),len(trainData)
+                #print len(stationData),len(trainData)
 		return stationData, trainData, routeData, self.plot_fields, self.hover_fields
 
 	def _updateTrain(self, trip_id, timestamp, next_stop, t_arrive, t_depart):
@@ -551,8 +551,6 @@ class stopObj(vizComponent):
 
         def updateProgress(self, timestamp, fields):
                 t_late_approaching, trains_approaching_string = self._listApproaching(timestamp)
-                if t_late_approaching > 60.:
-                    print self.attrib['id'] , "trains late time",t_late_approaching
 		stopPlotData = pd.DataFrame(
                     index=[self['id']],
                     columns=fields,
