@@ -50,7 +50,7 @@
 				<div id="bg-image" style="z-index:0; position:absolute; top:50px; left:20px; text-align:center; opacity:0.9;"><img src="r32_doors.jpg"/></div>
 				<div id="plot"; style="display:none; z-index:10; position:absolute; top:0px;"><script src="embed_bokeh_plot.js"></script></div>
 			</div>
-			<div id="button-area" style="width:600px; position:absolute; top:675px; left:-280px; z-index:9">
+			<div id="button-area" style="width:610px; position:absolute; top:675px; left:-225px; z-index:9">
 				<button id='button-about' class="buttonStyle"  onclick="showText(text_about)">About Conductor</button>
 				<button id='button-using' class="buttonStyle"  onclick="showText(text_using)">Using Conductor</button>
 				<button id='button-how' class="buttonStyle"  onclick="showText(text_how)">How It Works</button>
@@ -72,6 +72,14 @@
 	-->
 	</div>
 </div>
+
+<script>
+var buttonWidth = document.getElementById("button-about").offsetWidth + 
+		document.getElementById("button-using").offsetWidth + 
+		document.getElementById("button-how").offsetWidth + 
+		document.getElementById("button-tech").offsetWidth;
+console.log("buttons width " + buttonWidth);
+</script>
 
 <script>
 	// title screen fade-out
