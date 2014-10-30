@@ -47,6 +47,22 @@ def _color_for_status(c):
                 #print "color sequence",c,R,G,B
                 return "rgba(" + str(R) + ", " + str(G) + ", " + str(B) + ", " + str(alpha) + ")"
 
+def _stop_color_for_status(c):
+        if c < 1.:
+                return BLUE
+        else:
+                return GOLDENROD
+                ##c = min(1.0,c/5.)
+                ##lateRGB_init = (0, 102, 204, 0.25)
+                ##lateRGB = (250, 250, 0, 1.0)
+                ##alphaDelta = lateRGB[3] - lateRGB_init[3]
+                ##R = 250#int(lateRGB_init[0] + c*lateDelta)
+                ##G = 250#int(lateRGB_init[1] - c*lateDelta)
+                ##B = 0
+                ##alpha =  lateRGB_init[3] + c*alphaDelta
+                ###print "color sequence",c,R,G,B
+                ##return "rgba(" + str(R) + ", " + str(G) + ", " + str(B) + ", " + str(alpha) + ")"
+
 def _color_for_y(y, ymin, ymax):
         r = (y-ymin)/(ymax-ymin)
         return "rgba(" + str(int(255*(1-r))) + ", " + str(0) + ", " + str(int(255*r)) + ", " + str(1) + ")"
@@ -534,17 +550,20 @@ class stopObj(vizComponent):
             self.currentFreq[(ll,dd)] = sum(splits)/(60.*len(splits))
 
         def updateProgress(self, timestamp, fields):
+                t_late_approaching, trains_approaching_string = self._listApproaching(timestamp)
+                if t_late_approaching > 60.:
+                    print self.attrib['id'] , "trains late time",t_late_approaching
 		stopPlotData = pd.DataFrame(
                     index=[self['id']],
                     columns=fields,
                     data=[[float(self.attrib['lon']),
                            float(self.attrib['lat']),
-                           BLUE,
+                           _stop_color_for_status(t_late_approaching/60.),
                            float(7),
                            float(1.0),
                            _make_string([("Station", [str(self['name'])]),
                                          ("Time", [nice_time(time.time(), military=False)]),
-                                         ("Trains approaching", self._listApproaching()),
+                                         ("Trains approaching", trains_approaching_string),
                                          ("Arrival Frequency", [""])]) +\
                            #self._listStopData(timestamp)]])
                            _make_table(self._listStopData(timestamp))]])
@@ -553,15 +572,18 @@ class stopObj(vizComponent):
                 #print "formatted string",stopPlotData['formatted_string'].values
                 self.setPlotData(stopPlotData)
 
-        def _listApproaching(self):
+        def _listApproaching(self, t_now):
             strings = []
+            t_late = 0.
             for (ll,dd) in self.routes.keys():
                 trainsDict = self.routes[(ll,dd)]
                 listTrains = "; ".join([nice_time(t[1], military=False) for t in trainsDict.values()])
+                for t_data in trainsDict.values():
+                    t_late = t_late + max(0., t_now-t_data[1])
                 direction_tag = {"N":"Uptown","S":"Downtown"}
                 if len(listTrains) > 0:
                     strings.append((str(ll) + " " + direction_tag[dd] + " due", listTrains))
-            return strings
+            return t_late, strings
 
         def _formatString(self, x_float):
             try:

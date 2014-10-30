@@ -198,7 +198,7 @@ class bokehPlotInterface():
                 #self.hover.stringData = list(scatterData['formatted_string'])
 
                 _plotGeography(downsample_interval=39)
-                _plotPatches(lineData)
+                #_plotPatches(lineData)
                 _plotLineData(lineData)
 
                 text([995864], [191626], text="Brooklyn", text_baseline="middle", text_align="left",   text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
@@ -236,12 +236,12 @@ class bokehPlotInterface():
 			        self.renderers[0].data_source.data[f] = data[f]
 		self.renderers[0].data_source.data["formatted_string"] = data.get("formatted_string")
         	cursession().store_objects(self.renderers[0].data_source)
-                #print "setting alphas"
-                #print lineData['alpha']
-                patchRendererID = 2
-                self.renderers[patchRendererID].data_source.data['alpha'] = lineData['alpha']
-                self.renderers[patchRendererID].data_source.data['fill_alpha'] = lineData['alpha']
-        	cursession().store_objects(self.renderers[patchRendererID].data_source)
+                ###print "setting alphas"
+                ###print lineData['alpha']
+                ##patchRendererID = 2
+                ##self.renderers[patchRendererID].data_source.data['alpha'] = lineData['alpha']
+                ##self.renderers[patchRendererID].data_source.data['fill_alpha'] = lineData['alpha']
+        	##cursession().store_objects(self.renderers[patchRendererID].data_source)
 	
 	def plot(self, scatterData, lineData, dynamicFields, hoverFields, timestring):
 		if self._first_plot:
