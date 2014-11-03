@@ -481,7 +481,7 @@ class trainObj(vizComponent):
                                         ["Scheduled arrival&nbsp&nbsp", nice_time(self.attrib['sched_arrival'], military=False)],
                                         ["Behind schedule by&nbsp&nbsp", "%.1f" % float(self.attrib['t_late']) + " mins"]]) +\
                                 _make_table([
-                                        ["","Actual","Historical average"],
+                                        ["","actual","past performance"],
                                         ["Time elapsed for this trip", "%.1f" % float(self.attrib['duration_actual']) + " mins", "%.1f" % float(T_trip_avg) + " mins"],
                                         ["Time elapsed on this segment", "%.1f" % float(self.attrib['segment_actual']) + " mins", "%.1f" % float(progressFraction*T_segment_avg/60.) + " mins"]])
                                 #("Scheduled arrival", [nice_time(self.attrib['sched_arrival'], military=False)]),
@@ -628,7 +628,7 @@ class stopObj(vizComponent):
 
         ## this version should return data for _make_table
         def _listStopData(self, timestamp):
-            strings = [["&nbsp&nbsp","Train Line","past performance","current performance","time since last"]]
+            strings = [["&nbsp&nbsp","Train Line","time since last","current frequency","past performance"]]
             hour = time.localtime(time.time())[3]
             #hour = time.localtime(timestamp)[3]
             for intervalSet in self.interval_list:
@@ -638,7 +638,7 @@ class stopObj(vizComponent):
                     if len(self.lastStop[(ll,dd)]) > 0:
                         t_waiting = float((timestamp - self.lastStop[(ll,dd)][-1])/60.)
                     direction_tag = {"N":"Uptown","S":"Downtown"}
-                    strings.append(["&nbsp&nbsp", str(ll) + " " + direction_tag[dd], self._formatString(freq), self._formatString(self.currentFreq.get((ll,dd))), self._formatString(t_waiting)])
+                    strings.append(["&nbsp&nbsp", str(ll) + " " + direction_tag[dd], self._formatString(t_waiting), self._formatString(self.currentFreq.get((ll,dd))), self._formatString(freq)])
             return strings
 
 class routeObj(vizComponent):

@@ -12,8 +12,8 @@ from dataEngine import unit_perp
 from createLink import make_embed_script
 from geography import  importShapefile, extract_silhouette
 
-#SERVER_URL = """http://104.131.255.76:5006/"""
-SERVER_URL = """http://127.0.0.1:5006/"""
+SERVER_URL = """http://104.131.255.76:5006/"""
+#SERVER_URL = """http://127.0.0.1:5006/"""
 
 # color palette
 BRICK = "#800000"
@@ -201,10 +201,10 @@ class bokehPlotInterface():
                 #_plotPatches(lineData)
                 _plotLineData(lineData)
 
-                text([995864], [191626], text="Brooklyn", text_baseline="middle", text_align="left",   text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
-                text([986549], [218269], text="Manhattan", text_baseline="middle", text_align="right", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
-                text([1030884], [237246], text="The Bronx", text_baseline="middle", text_align="left", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
-                text([1008884], [206246], text="Queens", text_baseline="middle", text_align="left", text_font_size="24", text_color=GRAY, text_font="helvetica", angle=0)
+                text([995864], [191626], text="Brooklyn", text_baseline="middle", text_align="left",   text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
+                text([994549], [232269], text="Manhattan", text_baseline="middle", text_align="right", text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
+                text([1030884], [237246], text="The Bronx", text_baseline="middle", text_align="left", text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
+                text([1008884], [206246], text="Queens", text_baseline="middle", text_align="left", text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
 
                 self.curplot = curplot
                 #self.curplot.plot_height = PLOT_HEIGHT
