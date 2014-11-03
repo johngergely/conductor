@@ -204,14 +204,20 @@ class systemManager():
                 self.activeTrains = OrderedDict()
 		#print "Stop Data Loaded",self.stopSeries.index
 
-	def plot_boundaries(self):
-		xmin, xmax, ymin, ymax = self.stationLoc.get_area()
-                xmin, ymin = _map_projection(xmin, ymin)
-                xmax, ymax = _map_projection(xmax, ymax)
-                self.xmin = xmin
-                self.ymin = ymin
-                self.xmax = xmax
-                self.ymax = ymax
+        def plot_boundaries(self):
+                lats = [stop['lat'] for stop in self.stopSeries]
+                lons = [stop['lon'] for stop in self.stopSeries]
+		sys_xmin, sys_xmax, sys_ymin, sys_ymax = self.stationLoc.get_area()
+                ymin = min(lats)
+                padding = 0.02*ymin
+                ymin = ymin - padding
+                ymax = max(lats) + padding
+                xmin = min(lons) - padding
+                xmax = max(lons) + padding
+                print "active boundaries",xmin,xmax,ymin,ymax
+                sys_xmin, sys_ymin = _map_projection(sys_xmin, sys_ymin)
+                sys_xmax, sys_ymax = _map_projection(sys_xmax, sys_ymax)
+                print "system boundaries",sys_xmin, sys_xmax, sys_ymin, sys_ymax
 		return xmin, xmax, ymin, ymax
 
         def selectData(self, newDF):
@@ -562,7 +568,7 @@ class stopObj(vizComponent):
                            _make_string([("Station", [str(self['name'])]),
                                          ("Time", [nice_time(time.time(), military=False)]),
                                          ("Trains approaching", trains_approaching_string),
-                                         ("Arrival Frequency", [""])]) +\
+                                         ("Arrival Stats", [""])]) +\
                            #self._listStopData(timestamp)]])
                            _make_table(self._listStopData(timestamp))]])
                            #              ])]])
