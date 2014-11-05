@@ -213,7 +213,7 @@ class systemManager():
                 ymin = ymin - padding
                 ymax = max(lats) + padding
                 xmin = min(lons) - padding
-                xmax = max(lons) + padding
+                xmax = max(lons) + 2*padding
                 print "active boundaries",xmin,xmax,ymin,ymax
                 sys_xmin, sys_ymin = _map_projection(sys_xmin, sys_ymin)
                 sys_xmax, sys_ymax = _map_projection(sys_xmax, sys_ymax)
