@@ -176,6 +176,10 @@ class systemManager():
                 for si in stopList:
                     self.stopSeries[si] = stopObj(si, self.stationLoc[si,:], self.plot_fields, stopIntervals[si], stopDurations[si])
 
+		self.drawStationData = pd.DataFrame(columns=self.plot_fields)
+		self.drawTrainData = pd.DataFrame(columns=self.plot_fields)
+                self.drawRouteData = pd.DataFrame(columns=['x','y','alpha','size','color'])
+
                 self._allRoutes = {}
                 self._segmentAggregators = {}
                 for ll in self.selectLines:
@@ -190,6 +194,7 @@ class systemManager():
 				#routeStats = agg.process_tuple(rData['origin'], rData['destination'])
 				routeStats = self._segmentAggregators[(ll,dd)].fetchSeries((rData['origin'], rData['destination']))
                                 self._allRoutes[ri] = routeObj(ri, rData['origin'], rData['destination'], self.stationLoc, stats=routeStats)
+                                self.drawRouteData.loc[ri,:] = self._allRoutes[ri].plotData()
                                 targetStop = rData['destination']
                                 if "NULL" in targetStop:
                                     continue 
@@ -252,8 +257,10 @@ class systemManager():
                         stopRecastID = routeDest[:-1] + "N"
                         trip_duration = self.stopSeries[stopRecastID].duration_dict.get((ll,dd),{}).get(hour,0)
                         train.update_position(t_now, coords, isLate, progressFraction, segment_duration, trip_duration, self.plot_fields)
+                        self.drawTrainData.loc[train_id,:] = train.plotData()
                 for stop_id in self.stopSeries.index:
                         self.stopSeries[stop_id].updateProgress(t_now, self.plot_fields)
+                        self.drawStationData.loc[stop_id,:] = self.stopSeries[stop_id].plotData()
 
                 # show segment patches where trains are running behind schedule
                 for route in self._allRoutes.values():
@@ -268,50 +275,48 @@ class systemManager():
                             #    alpha = min(1., alpha + 0.5*(t_late+0.001)/t_segment)
                             alpha = min(0.5, alpha + 0.1*t_late)
                             #print alpha
-		    routePlotData = pd.DataFrame(
-                        index=[route.attrib['id']],
-                        columns=['x','y','alpha',],
-                        data=[[route.x_coords, route.y_coords, alpha]])
-                    route.setPlotData(routePlotData)
-
-
+		    #routePlotData = pd.DataFrame(index=[route.attrib['id']],\
+                    #    columns=['x','y','alpha',],\
+                    #    data=[[route.x_coords, route.y_coords, alpha]])
+                    #route.setPlotData(routePlotData)
+                    #route.setPlotDataByDict([route.attrib['id']], {'x':[route.x_coords], 'y':[route.y_coords], 'alpha':[alpha]})
 
 	def drawSystem(self, timestring):
-		index_list = list(self.stopSeries.index.values)
-		stationData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
-		for stop in self.stopSeries.index:
-			stationData.loc[stop,:] = self.stopSeries[stop].data().loc[stop,:]
+		##index_list = list(self.stopSeries.index.values)
+		##stationData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
+		##for stop in self.stopSeries.index:
+		##	stationData.loc[stop,:] = self.stopSeries[stop].data().loc[stop,:]
 
-                index_list = [k for k in self.activeTrains.keys()]
-		trainData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
-		for train in trainData.index:
-			trainData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
-		#index_list = []
-		#for k in self.activeTrains.keys():
-		#	if self.activeTrains[k].attrib['status'] != "inactive":
-		#		index_list.append(k)
-		#trainData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
-		#for train in self.activeTrains.keys():
-		#	trainData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
-                #        #print train,self.activeTrains[train].data().loc[train,['color','formatted_string']].values
+                ##index_list = [k for k in self.activeTrains.keys()]
+		##trainData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
+		##for train in trainData.index:
+		##	trainData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
+		###index_list = []
+		###for k in self.activeTrains.keys():
+		###	if self.activeTrains[k].attrib['status'] != "inactive":
+		###		index_list.append(k)
+		###trainData = pd.DataFrame(index=[index_list], columns=self.plot_fields)
+		###for train in self.activeTrains.keys():
+		###	trainData.loc[train,:] = self.activeTrains[train].data().loc[train,:]
+                ###        #print train,self.activeTrains[train].data().loc[train,['color','formatted_string']].values
 
-                #routeData = {'x':[], 'y':[], 't_min':[], 't_50pct':[], 't_75pct':[], 'name':[], 'info':[]}
-                routeData = {'x':[], 'y':[], 'alpha':[]}
-                for route in self._allRoutes.values():
-                    for column in routeData.keys():
-			    for route_index in route.data().index:
-                            	routeData[column].append(route.data().loc[route_index,column])
-                routeData['size'] = [1 for l in range(len(routeData['alpha']))]
-                routeData['color'] = ["#FFCC00" for l in range(len(routeData['alpha']))]
+                ###routeData = {'x':[], 'y':[], 't_min':[], 't_50pct':[], 't_75pct':[], 'name':[], 'info':[]}
+                ##routeData = {'x':[], 'y':[], 'alpha':[]}
+                ##for route in self._allRoutes.values():
+                ##    for column in routeData.keys():
+		##	    for route_index in route.data().index:
+                ##            	routeData[column].append(route.data().loc[route_index,column])
+                ##routeData['size'] = [1 for l in range(len(routeData['alpha']))]
+                ##routeData['color'] = ["#FFCC00" for l in range(len(routeData['alpha']))]
 
-                #print "DATA"
-                #print stationData
-                #print trainData
-                #print routeData
-                #print len(stationData),len(trainData)
-		return stationData, trainData, routeData, self.plot_fields, self.hover_fields
-
-	def _updateTrain(self, trip_id, timestamp, next_stop, t_arrive, t_depart):
+                ###print "DATA"
+                ###print stationData
+                ###print trainData
+                ###print routeData
+                ###print len(stationData),len(trainData)
+		return self.drawStationData, self.drawTrainData, self.drawRouteData, self.plot_fields, self.hover_fields
+	
+        def _updateTrain(self, trip_id, timestamp, next_stop, t_arrive, t_depart):
 		t_arrive = max(t_arrive, t_depart)
 		if not self.activeTrains.get(trip_id):
                         prev_stop = self._lookupPrev(trip_id, next_stop)
@@ -354,20 +359,26 @@ class systemManager():
                     print nice_time(t_current), "Purging stalled train",train_id, "after", (t_current-t_last_update)/60.,"mins inactive on route",routeID
                     self._getRoute(train_id, routeID).clearTrain(train_id, t_current)
                     self.activeTrains.pop(train_id)
+                    self.drawTrainData.drop(train_id, axis=0)
 
-class plotDataObj():
-	def __init__(self):
-		self.DF = pd.DataFrame(columns = ['x', 'y', 'color', 'size', 'name'])
-
-	def setData(self, setDF):
-		self.DF = setDF
-
-	def data(self):
-		return self.DF
+##class plotDataObj():
+##	def __init__(self):
+##		self.DF = pd.DataFrame(columns = ['x', 'y', 'color', 'size', 'name'])
+##
+##	def setData(self, setDF):
+##		self.DF = setDF
+##	
+##        def setDataByDict(self, index, datasets):
+##		self.DF.index = index
+##                for col in datasets.keys():
+##                    self.DF[col] = datasets[col]
+##
+##	def data(self):
+##		return self.DF
 
 class vizComponent():
 	def __init__(self):
-		self.plotData = plotDataObj()
+		self.storePlotData = []
 		self.attrib = {}
 	
 	def data(self):
@@ -389,11 +400,19 @@ class vizComponent():
 			else:
 				print " "
 
-	def initPlotData(self, initDF):
-		self.setPlotData(initDF)
-	
-	def setPlotData(self, setDF):
-		self.plotData.setData(setDF)
+	##def initPlotData(self, initDF):
+	##	self.setPlotData(initDF)
+	##
+
+	#def setPlotData(self, setDF):
+	#	self.plotData.setData(setDF)
+	#
+        def setPlotData(self, fields, data):
+            assert len(fields) == len(data)
+	    self.storePlotData = data
+
+        def plotData(self):
+            return self.storePlotData
 
 class trainObj(vizComponent):
 	def __init__(self, train_id, prev_stop, next_stop, timestamp):
@@ -478,32 +497,48 @@ class trainObj(vizComponent):
                 if self.attrib['status'] == "inactive":
                         markerAlpha = 0.0
                 # plot_fields=['x','y','color','size','alpha','name','time of update','location','schedule','data']
-		trainPlotData = pd.DataFrame(index=[self['id']], columns=fields,
-			data=[[coords[0], coords[1], markerColor, float(12), markerAlpha,
-                                _make_string([(self['name'],["(unique id " + self['id'] + ")"]),
-                                ("Time", [nice_time(timestamp, military=False)])]) +\
-                                _make_table([
-                                        ["Approaching next stop:&nbsp&nbsp", station_names[self['next_stop']]],
-                                        ["Scheduled arrival&nbsp&nbsp", nice_time(self.attrib['sched_arrival'], military=False)],
-                                        ["Behind schedule by&nbsp&nbsp", "%.1f" % float(self.attrib['t_late']) + " mins"]]) +\
-                                _make_table([
-                                        ["","actual","past performance"],
-                                        ["Time elapsed for this trip", "%.1f" % float(self.attrib['duration_actual']) + " mins", "%.1f" % float(T_trip_avg) + " mins"],
-                                        ["Time elapsed on this segment", "%.1f" % float(self.attrib['segment_actual']) + " mins", "%.1f" % float(progressFraction*T_segment_avg/60.) + " mins"]])
-                                #("Scheduled arrival", [nice_time(self.attrib['sched_arrival'], military=False)]),
-                                #("Behind schedule by", ["%.1f" % float(self.attrib['t_late']) + " mins"]),
-                                #("Elapsed time for this trip", ["%.1f" % float(self.attrib['duration_actual']) + " mins"]),
-                                #("Historical average for this trip", ["%.1f" % float(T_trip_avg) + "mins"]),
-                                #("Segment numbers", ["%.1f" % float(self.attrib['segment_actual']), "%.1f" % float(T_segment_avg/60.)]),
-				#self['name'],
-                                #nice_time(timestamp, military=False),
-                                #_make_string({"approaching next stop":station_names[self['next_stop']]}),
-                                #_make_string({"scheduled arrival":nice_time(self.attrib['sched_arrival'], military=False), "minutes behind schedule":"%.1f" % float(self.attrib['t_late'])}),
-                                #_make_string({"elapsed time for this trip":"%.1f" % float(self['duration'])})
-                                #self['id']+ " test string<br> line two"
-                                             ]] )
-                #print "formatted string",trainPlotData['formatted_string'].values
-                self.setPlotData(trainPlotData)
+		##trainPlotData = pd.DataFrame(index=[self['id']], columns=fields,
+		##	data=[[coords[0], coords[1], markerColor, float(12), markerAlpha,
+                ##                _make_string([(self['name'],["(unique id " + self['id'] + ")"]),
+                ##                ("Time", [nice_time(timestamp, military=False)])]) +\
+                ##                _make_table([
+                ##                        ["Approaching next stop:&nbsp&nbsp", station_names[self['next_stop']]],
+                ##                        ["Scheduled arrival&nbsp&nbsp", nice_time(self.attrib['sched_arrival'], military=False)],
+                ##                        ["Behind schedule by&nbsp&nbsp", "%.1f" % float(self.attrib['t_late']) + " mins"]]) +\
+                ##                _make_table([
+                ##                        ["","actual","past performance"],
+                ##                        ["Time elapsed for this trip", "%.1f" % float(self.attrib['duration_actual']) + " mins", "%.1f" % float(T_trip_avg) + " mins"],
+                ##                        ["Time elapsed on this segment", "%.1f" % float(self.attrib['segment_actual']) + " mins", "%.1f" % float(progressFraction*T_segment_avg/60.) + " mins"]])
+                ##                #("Scheduled arrival", [nice_time(self.attrib['sched_arrival'], military=False)]),
+                ##                #("Behind schedule by", ["%.1f" % float(self.attrib['t_late']) + " mins"]),
+                ##                #("Elapsed time for this trip", ["%.1f" % float(self.attrib['duration_actual']) + " mins"]),
+                ##                #("Historical average for this trip", ["%.1f" % float(T_trip_avg) + "mins"]),
+                ##                #("Segment numbers", ["%.1f" % float(self.attrib['segment_actual']), "%.1f" % float(T_segment_avg/60.)]),
+		##		#self['name'],
+                ##                #nice_time(timestamp, military=False),
+                ##                #_make_string({"approaching next stop":station_names[self['next_stop']]}),
+                ##                #_make_string({"scheduled arrival":nice_time(self.attrib['sched_arrival'], military=False), "minutes behind schedule":"%.1f" % float(self.attrib['t_late'])}),
+                ##                #_make_string({"elapsed time for this trip":"%.1f" % float(self['duration'])})
+                ##                #self['id']+ " test string<br> line two"
+                ##                             ]] )
+                ###print "formatted string",trainPlotData['formatted_string'].values
+                self.setPlotData(fields,\
+                                [coords[0],\
+                                 coords[1],\
+                                 markerColor,\
+                                 float(12),\
+                                 markerAlpha,\
+                                _make_string([(self['name'],["(unique id " + self['id'] + ")"]),\
+                                              ("Time", [nice_time(timestamp, military=False)])]) +\
+                                    _make_table([\
+                                                 ["Approaching next stop:&nbsp&nbsp", station_names[self['next_stop']]],\
+                                                 ["Scheduled arrival&nbsp&nbsp", nice_time(self.attrib['sched_arrival'], military=False)],\
+                                                 ["Behind schedule by&nbsp&nbsp", "%.1f" % float(self.attrib['t_late']) + " mins"]]) +\
+                                    _make_table([\
+                                                 ["","actual","past performance"],\
+                                                 ["Time elapsed for this trip", "%.1f" % float(self.attrib['duration_actual']) + " mins", "%.1f" % float(T_trip_avg) + " mins"],\
+                                                 ["Time elapsed on this segment", "%.1f" % float(self.attrib['segment_actual']) + " mins", "%.1f" % float(progressFraction*T_segment_avg/60.) + " mins"]])
+                                             ])
 
         def _calc_trip_origin(self, current_time):
 		t_ref = get_TOD_reference(current_time)
@@ -557,24 +592,34 @@ class stopObj(vizComponent):
 
         def updateProgress(self, timestamp, fields):
                 t_late_approaching, trains_approaching_string = self._listApproaching(timestamp)
-		stopPlotData = pd.DataFrame(
-                    index=[self['id']],
-                    columns=fields,
-                    data=[[float(self.attrib['lon']),
-                           float(self.attrib['lat']),
-                           _stop_color_for_status(t_late_approaching/60.),
-                           float(7),
-                           float(1.0),
-                           _make_string([("Station", [str(self['name'])]),
-                                         ("Time", [nice_time(time.time(), military=False)]),
-                                         ("Trains approaching", trains_approaching_string),
-                                         ("Arrival Stats", [""])]) +\
-                           #self._listStopData(timestamp)]])
-                           _make_table(self._listStopData(timestamp))]])
-                           #              ])]])
-                          #self['id']+ " test string<br> line two"]])
-                #print "formatted string",stopPlotData['formatted_string'].values
-                self.setPlotData(stopPlotData)
+		##stopPlotData = pd.DataFrame(
+                ##    index=[self['id']],
+                ##    columns=fields,
+                ##    data=[[float(self.attrib['lon']),
+                ##           float(self.attrib['lat']),
+                ##           _stop_color_for_status(t_late_approaching/60.),
+                ##           float(7),
+                ##           float(1.0),
+                ##           _make_string([("Station", [str(self['name'])]),
+                ##                         ("Time", [nice_time(time.time(), military=False)]),
+                ##                         ("Trains approaching", trains_approaching_string),
+                ##                         ("Arrival Stats", [""])]) +\
+                ##           #self._listStopData(timestamp)]])
+                ##           _make_table(self._listStopData(timestamp))]])
+                ##           #              ])]])
+                ##          #self['id']+ " test string<br> line two"]])
+                ###print "formatted string",stopPlotData['formatted_string'].values
+                self.setPlotData(fields=fields,\
+                                 data=[float(self.attrib['lon']),\
+                                       float(self.attrib['lat']),\
+                                       _stop_color_for_status(t_late_approaching/60.),\
+                                       float(7),\
+                                       float(1.0),\
+                                       _make_string([("Station", [str(self['name'])]),\
+                                                     ("Time", [nice_time(time.time(), military=False)]),\
+                                                     ("Trains approaching", trains_approaching_string),\
+                                                     ("Arrival Stats", [""])]) +\
+                                       _make_table(self._listStopData(timestamp))])
 
         def _listApproaching(self, t_now):
             strings = []
@@ -672,10 +717,10 @@ class routeObj(vizComponent):
                 infoString = "route"
                 ## todo this should be a dynamic update based on system time
                 hour = time.localtime(time.time())[3]
-		routePlotData = pd.DataFrame(
-                    index=[self['id']],
-                    columns=['x','y','alpha',],#'t_min','t_50pct','t_75pct','name','info','hover'],
-                    data=[[self.x_coords, self.y_coords, 0.]])
+		#routePlotData = pd.DataFrame(
+                #    index=[self['id']],
+                #    columns=['x','y','alpha',],#'t_min','t_50pct','t_75pct','name','info','hover'],
+                #    data=[[self.x_coords, self.y_coords, 0.]])
                            ##self.stats.get(hour,0.).get('min',0.),
                            ##self.stats.get(hour,0.).get('50%',0.),
                            ##self.stats.get(hour,0.).get('75%',0.),
@@ -685,7 +730,7 @@ class routeObj(vizComponent):
                 #routePlotData['t_min'] = routePlotData['t_min'].fillna(1.)
                 #routePlotData['t_50pct'] = routePlotData['t_50pct'].fillna(1.)
                 #routePlotData['t_75pct'] = routePlotData['t_75pct'].fillna(1.)
-                self.setPlotData(routePlotData)
+                self.setPlotData(fields=['x','y','alpha','size','color'], data=[self.x_coords, self.y_coords, 1., 1., "#FFCC00"])
 
         def trainPosition(self, trip_id, timestamp, dir_shift=True):
                 t_start, t_arrive, isLate = self.trainsOnRoute[trip_id]
