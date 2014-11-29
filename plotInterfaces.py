@@ -12,8 +12,8 @@ from dataEngine import unit_perp
 from createLink import make_embed_script
 from geography import  importShapefile, extract_silhouette
 
-SERVER_URL = """http://104.131.255.76:5006/"""
-#SERVER_URL = """http://127.0.0.1:5006/"""
+#SERVER_URL = """http://104.131.255.76:5006/"""
+SERVER_URL = """http://127.0.0.1:5006/"""
 
 # color palette
 BRICK = "#800000"
@@ -44,9 +44,9 @@ def _plotLineData(lineData):
     alphas = []
     colors = []
     widths = []
-    for i in range(len(lineData['x'])):
-        xx = lineData['x'][i]
-        yy = lineData['y'][i]
+    for i in lineData.index:
+        xx = lineData.loc[i,'x']
+        yy = lineData.loc[i,'y']
 
         xs.append(xx)
         ys.append(yy)
@@ -61,11 +61,11 @@ def _plotPatches(lineData):
     alphas = []
     colors = []
     widths = []
-    x_scale = lineData['x'][1]-lineData['x'][0]
+    x_scale = lineData.iloc[1,'x']-lineData.iloc[0,'x']
     #print "spatial scale",x_scale
-    for i in range(len(lineData['x'])):
-        xx = lineData['x'][i]
-        yy = lineData['y'][i]
+    for i in lineData.index:
+        xx = lineData.loc[i,'x']
+        yy = lineData.loc[i,'y']
         #tmin = float(lineData['t_min'][i])
         #t50 = float(lineData['t_50pct'][i])
         #t75 = float(lineData['t_75pct'][i])
@@ -224,6 +224,7 @@ class bokehPlotInterface():
 
 		self._first_plot = False
 
+        #@profile
 	def _animate_plot(self, data, lineData, fields):
                 for f in self.renderers[0].data_source.data.keys():
                         if not f in data.columns:
@@ -243,7 +244,7 @@ class bokehPlotInterface():
                 ##self.renderers[patchRendererID].data_source.data['alpha'] = lineData['alpha']
                 ##self.renderers[patchRendererID].data_source.data['fill_alpha'] = lineData['alpha']
         	##cursession().store_objects(self.renderers[patchRendererID].data_source)
-	
+
 	def plot(self, scatterData, lineData, dynamicFields, hoverFields, timestring):
 		if self._first_plot:
 			self._init_plot(scatterData, lineData, hoverFields, timestring)
@@ -254,6 +255,16 @@ class bokehPlotInterface():
                 #make_URL(SERVER_URL, EMBED_DATA)
                 make_embed_script(EMBED_DATA)
 
+class dummyPlotInterface(bokehPlotInterface):
+        def __init__(self):
+                print "dummy plot manager initialized; no plots will be generated"
+
+	def plot(self, scatterData, lineData, dynamicFields, hoverFields, timestring):
+                print "PLOT DATA"
+                print timestring
+                print scatterData.shape
+                print lineData.shape
+                
 if __name__=="__main__":
 	print "TESTING PLOT WITH DATA SET"
         #output_server("whatever.html", load_from_config=False)#test_plot_functionality.html")
