@@ -202,9 +202,9 @@ class bokehPlotInterface():
                 _plotLineData(lineData)
 
                 text([995864], [191626], text="Brooklyn", text_baseline="middle", text_align="left",   text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
-                text([992549], [232269], text="Manhattan", text_baseline="middle", text_align="right", text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
+                text([992549], [236269], text="Manhattan", text_baseline="middle", text_align="right", text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
                 text([1018884], [236646], text="The Bronx", text_baseline="middle", text_align="left", text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
-                text([1008884], [206246], text="Queens", text_baseline="middle", text_align="left", text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
+                text([1000884], [213246], text="Queens", text_baseline="middle", text_align="left", text_font_size="14", text_color=GRAY, text_font="helvetica", angle=0)
 
                 self.curplot = curplot
                 #self.curplot.plot_height = PLOT_HEIGHT
