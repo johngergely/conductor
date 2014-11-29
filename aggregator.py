@@ -70,6 +70,7 @@ class aggregator():
                 self.direction = dd
                 self.useComputed = useComputed
                 self.firstCalc = True
+                self.calcCounter = 0
                 if not self.useComputed:
                         print "useComputed flag is set to false.\nThis forces re-calculation of interval data and is a time-consuming call.\nThis call should only be made occasionally when re-computes are required. Otherwise re-use archived data if possible by setting useCompute=True."
 
@@ -118,7 +119,9 @@ class aggregator():
                         hmax = hmin+1
                         stats_per_hour[hmin] = self.calcInterval(hmin, hmax, token)
                 self.computedSeries[token] = stats_per_hour 
-                self.storeData()
+                self.calcCounter = self.calcCounter + 1
+                if self.calcCounter % 20 == 0:
+                        self.storeData()
                 return stats_per_hour
 
         def fetchSeries(self, token):
