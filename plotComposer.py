@@ -4,7 +4,7 @@ import time
 
 from dataEngine import systemManager
 from streamManagers import streamSimulator, liveStreamReader
-from plotInterfaces import bokehPlotInterface
+from plotInterfaces import bokehPlotInterface, dummyPlotInterface
 
 from collect import nice_time
 
@@ -67,6 +67,7 @@ if __name__ == "__main__":
     mgr = systemManager(setLines=['1','2','3','4','5','6'], setDirections=['N','S'])
     liveStream = liveStreamReader()      
     plotDevice= bokehPlotInterface()
+    #plotDevice= dummyPlotInterface()
 
     boss = plotManager(mgr, liveStream, plotDevice)
     boss.run()
