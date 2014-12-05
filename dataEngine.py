@@ -305,7 +305,7 @@ class systemManager():
                     print nice_time(t_current), "Purging stalled train",train_id, "after", (t_current-t_last_update)/60.,"mins inactive on route",routeID
                     self._getRoute(train_id, routeID).clearTrain(train_id, t_current)
                     self.activeTrains.pop(train_id)
-                    self.drawTrainData.drop(train_id, axis=0)
+                    self.drawTrainData = self.drawTrainData.drop(train_id, axis=0)
 
 class vizComponent():
 	def __init__(self):
