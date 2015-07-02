@@ -3,7 +3,7 @@ CONDUCTOR - Real-time Subway Visualization and Analytics
 
 Conductor is an open-source project in active development to collect data from NYC Subway real-time data feeds and do modeling, visualization,and predictive analytics.
 
-Check out the real-time interactive visualization [here](http://conductor.scalingsolutions.net).
+Check out the real-time interactive visualization [here](http://conductor.machinechilling.nyc).
 
 Consult the [wiki](https://github.com/johngergely/conductor/wiki) for documentation, in-process analysis, and some incomplete tutorial sections.
 
